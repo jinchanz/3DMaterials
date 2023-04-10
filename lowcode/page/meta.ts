@@ -17,6 +17,13 @@ const Page: IPublicTypeComponentMetadata = {
     subName: '',
   },
   configure: {
+    props: [
+      {
+        name: 'background',
+        title: '背景',
+        setter: 'ColorSetter'
+      }
+    ],
     supports: {
       style: true,
     },
@@ -48,7 +55,13 @@ const Page: IPublicTypeComponentMetadata = {
           const clipCoord = new Vector3(x1, y1, 0.99);
           const targetCoord = clipCoord.unproject(camera);
 
-          node.setPropValue('position', targetCoord.toArray());
+          const vec = targetCoord.clone().sub(camera.position.clone());
+
+          const t = -targetCoord.y/vec.y;
+
+          const result = new Vector3(targetCoord.x + t*vec.x, 0, targetCoord.z + t*vec.z);
+
+          node.setPropValue('position', result.toArray());
         },
       },
     },

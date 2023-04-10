@@ -1,9 +1,11 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { TransformControls, useCursor, useHelper, OrbitControls } from '@react-three/drei';
+import { Canvas, useThree } from '@react-three/fiber';
+import { TransformControls, useCursor, useHelper } from '@react-three/drei';
 
-import { PerspectiveCamera, DirectionalLight, DirectionalLightHelper, DoubleSide } from 'three';
+import { PerspectiveCamera, DirectionalLight, DirectionalLightHelper, Color } from 'three';
+
+import { OrbitControls } from '../../utils/OrbitControls';
 
 import './index.scss';
 
@@ -31,11 +33,19 @@ const Light = () => {
   );
 };
 
-function Page(props) {
-  // console.log('props: ', props);
+function CustomScene(props) {
+  const { children, background, ...otherProps } = props || {};
+  const { scene } = useThree();
+  const backgroundColor = new Color(background);
+  scene.background = backgroundColor;
+  return <scene {...otherProps}>
+    { children || null }
+  </scene>
+}
 
+function Page(props) {
   const canvasRef = useRef();
-  const { children, getNode, designMode, componentId } =
+  const { children, getNode, designMode, componentId, background } =
     props || {};
   const pageNode = designMode === 'design' ? getNode(componentId) : null;
   const [target, setTarget] = useState();
@@ -43,7 +53,7 @@ function Page(props) {
   const [transformMode, setTransformMode] = useState(0);
   useCursor(hovered);
   const _children = [];
-
+  
   React.Children.map(children, (child) => {
     if (child.type !== 'div') {
       const _child = React.cloneElement(child, {
@@ -69,7 +79,7 @@ function Page(props) {
       _children.push(_child);
     }
   });
-
+  
   const camera = new PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.fromArray([0, 12, 30]);
   camera.lookAt(0, 0, 0);
@@ -80,40 +90,40 @@ function Page(props) {
       className="threeDPage"
       camera={camera}
       shadows
-      onPointerMissed={() => {
-        setTarget(null);
-        console.log('on pointer missed');
-      }}
+      onPointerMissed={() => setTarget(null)}
     >
-      <scene>
-        <Suspense fallback={null}>{_children}</Suspense>
-        <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
-          <planeGeometry args={[20, 20, 10, 10]} />
-          <meshStandardMaterial color={0xffff00} side={DoubleSide} />
-        </mesh>
-        <ambientLight />
-        <Light />
+      <Suspense fallback={null}>
+        <CustomScene background={background}>
+          <gridHelper args={[30]} />
+          {_children}
+          <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
+            <planeGeometry args={[30, 30, 10, 10]} />
+            <meshStandardMaterial color={new Color(background)}/>
+          </mesh>
+          <ambientLight />
+          <Light />
 
-        <OrbitControls
-          makeDefault
-          onEnd={(e) => {
-            if (!pageNode) return;
-            pageNode.setPropValue('cameraPosition', e?.target?.object.position?.toArray?.());
-          }}
-        />
-        {designMode === 'design' && target ? (
-          <TransformControls
-            object={target}
-            mode={modes[transformMode]}
-            onChange={() => {
-              const { componentId } = target;
-              const node = getNode(componentId);
-              node.setPropValue('rotation', target.rotation.toArray());
-              node.setPropValue('position', target.position.toArray());
-              node.setPropValue('scale', target.scale.toArray());
-            } } />
-        ) : null}
-      </scene>
+          <OrbitControls
+            makeDefault
+            onEnd={(e) => {
+              if (!pageNode) return;
+              pageNode.setPropValue('cameraPosition', e?.target?.object.position?.toArray?.());
+            }}
+          />
+          {designMode === 'design' && target ? (
+            <TransformControls
+              object={target}
+              mode={modes[transformMode]}
+              onChange={() => {
+                const { componentId } = target;
+                const node = getNode(componentId);
+                node.setPropValue('rotation', target.rotation.toArray());
+                node.setPropValue('position', target.position.toArray());
+                node.setPropValue('scale', target.scale.toArray());
+              } } />
+          ) : null}
+        </CustomScene>
+      </Suspense>
     </Canvas>
   );
 }
