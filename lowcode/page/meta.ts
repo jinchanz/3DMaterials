@@ -284,6 +284,7 @@ const DirectionalLight: IPublicTypeComponentMetadata = {
       title: '平行光',
       screenshot: '/public/screenshots/directional.png',
       schema: {
+        title: '平行光',
         componentName: 'DirectionalLight',
         props: {
           intensity: 1

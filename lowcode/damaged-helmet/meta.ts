@@ -50,5 +50,5 @@ const snippets: Snippet[] = [
 
 export default {
   ...DamagedHelmetMeta,
-  snippets
+  // snippets
 };
