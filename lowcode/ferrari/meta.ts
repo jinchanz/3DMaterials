@@ -1,7 +1,9 @@
 
-import { ComponentMetadata, Snippet } from '@alilc/lowcode-types';
+import { IPublicTypeComponentMetadata, IPublicTypeSnippet } from '@alilc/lowcode-types';
 
-const FerrariMeta: ComponentMetadata = {
+const FerrariMeta: IPublicTypeComponentMetadata = {
+  group: '模型',
+  category: '模型',
   "componentName": "Ferrari",
   "title": "Ferrari",
   "docUrl": "",
@@ -35,7 +37,7 @@ const FerrariMeta: ComponentMetadata = {
     "component": {}
   }
 };
-const snippets: Snippet[] = [
+const snippets: IPublicTypeSnippet[] = [
   {
     "title": "Ferrari",
     "screenshot": "/public/ferrari.jpg",

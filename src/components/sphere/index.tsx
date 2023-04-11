@@ -9,10 +9,6 @@ function Sphere(props) {
   return (
     <mesh
       {...props}
-      // scale={clicked ? 1.5 : 1}
-      // onClick={(event) => click(!clicked)}
-      // onPointerOver={(event) => hover(true)}
-      // onPointerOut={(event) => hover(false)}
     >
       <sphereGeometry  />
       <meshStandardMaterial color={new Color(color)} />

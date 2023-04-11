@@ -1,11 +1,9 @@
 /* eslint-disable react/no-unknown-property */
-import React, { Suspense, useState, createElement, useRef } from 'react';
+import React, { Suspense, useState, createElement, useRef, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { TransformControls, useCursor, useHelper } from '@react-three/drei';
+import { TransformControls, useCursor, OrbitControls } from '@react-three/drei';
 
-import { PerspectiveCamera, DirectionalLight, DirectionalLightHelper, Color } from 'three';
-
-import { OrbitControls } from '../../utils/OrbitControls';
+import { PerspectiveCamera, Color } from 'three';
 
 import './index.scss';
 import { Loading } from '@alifd/next';
@@ -13,28 +11,6 @@ import { Loading } from '@alifd/next';
 let lastChildren;
 
 const modes = ['translate', 'rotate', 'scale'];
-
-const Light = () => {
-  const dirLight = useRef<DirectionalLight>(null);
-  useHelper(dirLight, DirectionalLightHelper, 1, 'red');
-
-  return (
-    <directionalLight
-      ref={dirLight}
-      position={[10, 10, 10]}
-      intensity={1.5}
-      shadow-mapSize-width={1024}
-      shadow-mapSize-height={1024}
-      shadow-camera-far={50}
-      castShadow
-      shadow-camera-left={-100}
-      shadow-camera-right={100}
-      shadow-camera-top={100}
-      // eslint-disable-next-line react/no-unknown-property
-      shadow-camera-bottom={-100}
-    />
-  );
-};
 
 function CustomScene(props) {
   const { children, background, ...otherProps } = props || {};
@@ -49,11 +25,14 @@ function CustomScene(props) {
 const Content = (props) => {
 
   const canvasRef = useRef();
-  const { children, getNode, designMode, componentId, background } =
+  const { children, getNode, designMode, componentId, background, editorCamera = {
+    position: [0, 12, 30]
+  } } =
     props || {};
   lastChildren = children;
   const pageNode = designMode === 'design' ? getNode(componentId) : null;
   const [target, setTarget] = useState();
+  const [camera, setCamera] = useState(new PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 1000));
   const [hovered, setHovered] = useState(false);
   const [transformMode, setTransformMode] = useState(0);
   useCursor(hovered);
@@ -61,7 +40,7 @@ const Content = (props) => {
   
   React.Children.map(children, (child) => {
     if (child.type !== 'div') {
-      const _child = React.cloneElement(child, {
+      const overrideProps: any = {
         onClick: (event) => {
           // console.log('event: ', event);
           let _target = event.object;
@@ -78,17 +57,35 @@ const Content = (props) => {
           e.stopPropagation();
           setTransformMode((transformMode + 1) % modes.length);
         },
-        castShadow: true,
-      });
+      };
+
+      if (!child?.type?.isLight) {
+        overrideProps.castShadow = true;
+      }
+      const _child = React.cloneElement(child, overrideProps);
       _children.push(_child);
     }
   });
   
-  const camera = new PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 100);
-  camera.position.fromArray([0, 12, 30]);
-  camera.lookAt(0, 0, 0);
-  camera.updateMatrixWorld(true);
 
+  useEffect(() => {
+    camera.position.fromArray(editorCamera?.position || [0, 12, 30]);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld(true);
+    setCamera(camera)
+  }, [camera, editorCamera])
+
+  const onEnd = React.useMemo(() => {
+    return (e) => {
+      if (!pageNode) return;
+      pageNode.setPropValue('editorCamera', {
+        position: e?.target?.object.position?.toArray?.()
+      });
+      // pageNode.children?.get(0)?.select()
+      pageNode.document.selection.clear();
+      pageNode.select();
+    }
+  }, [pageNode]);
   return <Canvas
     ref={canvasRef}
     className="threeDPage"
@@ -103,15 +100,11 @@ const Content = (props) => {
         <planeGeometry args={[30, 30, 10, 10]} />
         <meshStandardMaterial color={new Color(background)}/>
       </mesh>
-      <ambientLight />
-      <Light />
 
       <OrbitControls
         makeDefault
-        onEnd={(e) => {
-          if (!pageNode) return;
-          pageNode.setPropValue('cameraPosition', e?.target?.object.position?.toArray?.());
-        }}
+        enableDamping={false}
+        onEnd={onEnd}
       />
       {designMode === 'design' && target ? (
         <TransformControls
@@ -158,4 +151,17 @@ function Page(props) {
   );
 }
 
-export default Page;
+const DirectionalLight = (props) => {
+
+  return <directionalLight {...props} />;
+}
+
+DirectionalLight.isLight = true;
+
+const AmbientLight = (props) => {
+  return <ambientLight {...props} />;
+}
+
+AmbientLight.isLight = true;
+
+export { Page, DirectionalLight, AmbientLight };

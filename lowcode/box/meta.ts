@@ -1,18 +1,18 @@
 
 import { ComponentMetadata, Snippet } from '@alilc/lowcode-types';
 
-const SphereMeta: ComponentMetadata = {
+const BoxMeta: ComponentMetadata = {
   group: '模型',
   category: '基础几何',
-  "componentName": "Sphere",
-  "title": "Sphere",
+  "componentName": "Box",
+  "title": "Box",
   "docUrl": "",
-  "screenshot": "/public/sphere.jpg",
+  "screenshot": "/public/box.png",
   "devMode": "proCode",
   "npm": {
     "package": "@alilc/3d-materials",
     "version": "0.1.0",
-    "exportName": "Sphere",
+    "exportName": "Box",
     "main": "src/index.tsx",
     "destructuring": true,
     "subName": ""
@@ -39,16 +39,16 @@ const SphereMeta: ComponentMetadata = {
 };
 const snippets: Snippet[] = [
   {
-    "title": "Sphere",
-    "screenshot": "/public/sphere.jpg",
+    "title": "Box",
+    "screenshot": "/public/box.png",
     "schema": {
-      "componentName": "Sphere",
+      "componentName": "Box",
       "props": {}
     }
   }
 ];
 
 export default {
-  ...SphereMeta,
+  ...BoxMeta,
   snippets
 };
