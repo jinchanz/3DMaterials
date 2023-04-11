@@ -1,9 +1,11 @@
 /* eslint-disable react/no-unknown-property */
-import React, { Suspense, useState, createElement, useRef } from 'react';
+import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { TransformControls, useCursor, useHelper } from '@react-three/drei';
 
-import { PerspectiveCamera, DirectionalLight, DirectionalLightHelper, Color } from 'three';
+import { PerspectiveCamera, Color, EquirectangularReflectionMapping } from 'three';
+
+import { RGBELoader } from 'three-stdlib';
 
 import { OrbitControls } from '../../utils/OrbitControls';
 
@@ -15,9 +17,7 @@ let lastChildren;
 const modes = ['translate', 'rotate', 'scale'];
 
 const Light = () => {
-  const dirLight = useRef<DirectionalLight>(null);
-  useHelper(dirLight, DirectionalLightHelper, 1, 'red');
-
+  const dirLight = useRef(null);
   return (
     <directionalLight
       ref={dirLight}
@@ -37,11 +37,37 @@ const Light = () => {
 };
 
 function CustomScene(props) {
-  const { children, background, ...otherProps } = props || {};
-  const { scene } = useThree();
-  const backgroundColor = new Color(background);
-  scene.background = backgroundColor;
-  return <scene {...otherProps}>
+  const { children, background, backgroundType, texture, ...otherProps } = props || {};
+  const { scene: sceneInst } = useThree();
+  const [environment, setEnverionment] = useState();
+
+  useEffect(() => {
+    if (texture) {
+      new RGBELoader()
+        .setPath( '/public/textures/' )
+        .load( texture, ( hdrEquirect ) => {
+          hdrEquirect.mapping = EquirectangularReflectionMapping;
+          setEnverionment(hdrEquirect)
+        });
+    }
+  }, [texture])
+
+  console.log('environment: ', environment)
+
+  if (environment) {
+    sceneInst.environment = environment;
+  }
+  if (backgroundType === 'color') {
+    const backgroundColor = new Color(background);
+    sceneInst.background = backgroundColor;
+  } else if (backgroundType === 'texture' && environment) {
+    sceneInst.background = environment;
+  }
+
+  console.log('backgroundType: ', backgroundType);
+  console.log('sceneInst: ', sceneInst);
+
+  return <scene {...otherProps} background={sceneInst.background} environment={sceneInst.environment}>
     { children || null }
   </scene>
 }
@@ -49,7 +75,9 @@ function CustomScene(props) {
 const Content = (props) => {
 
   const canvasRef = useRef();
-  const { children, getNode, designMode, componentId, background } =
+  const { children, getNode, designMode, componentId, background, camera: cameraProps = {
+    position: [0, 12, 30]
+  }, backgroundType, texture } =
     props || {};
   lastChildren = children;
   const pageNode = designMode === 'design' ? getNode(componentId) : null;
@@ -61,7 +89,7 @@ const Content = (props) => {
   
   React.Children.map(children, (child) => {
     if (child.type !== 'div') {
-      const _child = React.cloneElement(child, {
+      const overrideProps = {
         onClick: (event) => {
           // console.log('event: ', event);
           let _target = event.object;
@@ -78,16 +106,35 @@ const Content = (props) => {
           e.stopPropagation();
           setTransformMode((transformMode + 1) % modes.length);
         },
-        castShadow: true,
-      });
+      };
+      if (!child.type.isLight) {
+        overrideProps.castShadow = true;
+      }
+      const _child = React.cloneElement(child, overrideProps);
       _children.push(_child);
     }
   });
   
-  const camera = new PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 100);
-  camera.position.fromArray([0, 12, 30]);
-  camera.lookAt(0, 0, 0);
-  camera.updateMatrixWorld(true);
+  const defaultCamera = React.useMemo(() => new PerspectiveCamera(cameraProps.fov || 25, window.innerWidth / window.innerHeight, 0.1, 200), [cameraProps] )
+  
+  const [camera, setCamera] = useState(defaultCamera);
+
+  React.useEffect(() => {
+    camera.position.fromArray(cameraProps?.position || [0,12,30]);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld(true);
+    setCamera(camera);
+  }, [cameraProps, camera])
+
+  const onEnd = useMemo(() => {
+    return (e) => {
+      if (!pageNode) return;
+      pageNode.setPropValue('camera.position', e?.target?.object.position?.toArray?.());
+      pageNode.document.selection.clear();
+      pageNode.select();
+    };
+  }, [pageNode])
+
 
   return <Canvas
     ref={canvasRef}
@@ -96,22 +143,17 @@ const Content = (props) => {
     shadows
     onPointerMissed={() => setTarget(null)}
   >
-    <CustomScene background={background}>
+    <CustomScene background={background} backgroundType={backgroundType} texture={texture}>
       <gridHelper args={[30]} />
       {_children}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
         <planeGeometry args={[30, 30, 10, 10]} />
-        <meshStandardMaterial color={new Color(background)}/>
+        <meshStandardMaterial/>
       </mesh>
-      <ambientLight />
-      <Light />
 
       <OrbitControls
         makeDefault
-        onEnd={(e) => {
-          if (!pageNode) return;
-          pageNode.setPropValue('cameraPosition', e?.target?.object.position?.toArray?.());
-        }}
+        onEnd={onEnd}
       />
       {designMode === 'design' && target ? (
         <TransformControls
@@ -158,4 +200,17 @@ function Page(props) {
   );
 }
 
-export default Page;
+const AmbientLight = (props) => {
+  return <ambientLight {...props} />
+};
+
+AmbientLight.isLight = true;
+AmbientLight.AmbientLight = true;
+
+const DirectionalLight = (props) => {
+  return <directionalLight {...props} />
+};
+
+DirectionalLight.isLight = true;
+
+export { Page, AmbientLight, DirectionalLight };

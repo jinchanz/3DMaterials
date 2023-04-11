@@ -1,8 +1,8 @@
-import { createElement  } from 'react';
+import { createElement } from 'react';
 
-import { Color } from 'three'
+import { Color } from 'three';
 
-function Sphere(props) {
+function Box(props) {
 
   const { material={}, object={}, ...otherProps } = props || {};
 
@@ -13,12 +13,12 @@ function Sphere(props) {
       {...object}
       {...otherProps}
     >
-      <sphereGeometry  />
+      <boxGeometry />
       <meshStandardMaterial color={new Color(color)} {...otherMaterial} />
     </mesh>
   )
 }
 
-export default Sphere;
+export default Box;
 
 

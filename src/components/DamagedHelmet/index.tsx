@@ -2,9 +2,9 @@ import { createElement } from 'react';
 import { Color } from 'three';
 import { useGLTF } from '@react-three/drei';
 
-function Ferrari(props) {
+function DamagedHelmet(props) {
   const { color } = props || {};
-  const gltf = useGLTF('/public/models/ferrari.glb');
+  const gltf = useGLTF('/public/models/glTF/DamagedHelmet.gltf');
   const { scene } = gltf;
 
   const _scent = scene.clone();
@@ -23,4 +23,4 @@ function Ferrari(props) {
   );
 }
 
-export default Ferrari;
+export default DamagedHelmet;

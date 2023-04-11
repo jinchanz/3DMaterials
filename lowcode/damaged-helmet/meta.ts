@@ -1,18 +1,18 @@
 
 import { ComponentMetadata, Snippet } from '@alilc/lowcode-types';
 
-const FerrariMeta: ComponentMetadata = {
+const DamagedHelmetMeta: ComponentMetadata = {
   group: '模型',
   category: '模型',
-  "componentName": "Ferrari",
-  "title": "Ferrari",
+  "componentName": "DamagedHelmet",
+  "title": "DamagedHelmet",
   "docUrl": "",
-  "screenshot": "/public/screenshots/ferrari.jpg",
+  "screenshot": "/public/screenshots/damaged-helmet.png",
   "devMode": "proCode",
   "npm": {
     "package": "@alilc/3d-materials",
     "version": "0.1.0",
-    "exportName": "Ferrari",
+    "exportName": "DamagedHelmet",
     "main": "src/index.tsx",
     "destructuring": true,
     "subName": ""
@@ -39,16 +39,16 @@ const FerrariMeta: ComponentMetadata = {
 };
 const snippets: Snippet[] = [
   {
-    "title": "Ferrari",
-    "screenshot": "/public/screenshots/ferrari.jpg",
+    "title": "DamagedHelmet",
+    "screenshot": "/public/screenshots/damaged-helmet.png",
     "schema": {
-      "componentName": "Ferrari",
+      "componentName": "DamagedHelmet",
       "props": {}
     }
   }
 ];
 
 export default {
-  ...FerrariMeta,
+  ...DamagedHelmetMeta,
   snippets
 };

@@ -1,18 +1,18 @@
 
-import { IPublicTypeComponentMetadata, IPublicTypeSnippet } from '@alilc/lowcode-types';
+import { ComponentMetadata, Snippet } from '@alilc/lowcode-types';
 
-const SphereMeta: IPublicTypeComponentMetadata = {
+const BoxMeta: ComponentMetadata = {
   group: '模型',
   category: '基础几何',
-  "componentName": "Sphere",
-  "title": "Sphere",
+  "componentName": "Box",
+  "title": "Box",
   "docUrl": "",
-  "screenshot": "/public/screenshots/sphere.png",
+  "screenshot": "/public/screenshots/box.png",
   "devMode": "proCode",
   "npm": {
     "package": "@alilc/3d-materials",
     "version": "0.1.0",
-    "exportName": "Sphere",
+    "exportName": "Box",
     "main": "src/index.tsx",
     "destructuring": true,
     "subName": ""
@@ -144,18 +144,18 @@ const SphereMeta: IPublicTypeComponentMetadata = {
     "component": {}
   }
 };
-const snippets: IPublicTypeSnippet[] = [
+const snippets: Snippet[] = [
   {
-    "title": "Sphere",
-    "screenshot": "/public/screenshots/sphere.png",
+    "title": "Box",
+    "screenshot": "/public/screenshots/box.png",
     "schema": {
-      "componentName": "Sphere",
+      "componentName": "Box",
       "props": {}
     }
   }
 ];
 
 export default {
-  ...SphereMeta,
+  ...BoxMeta,
   snippets
 };
