@@ -62,14 +62,14 @@
   },
   "dependencies": {
     "@alifd/next": "^1.25.27",
-    "@react-three/drei": "^7.13.1",
-    "@react-three/fiber": "^7.0.29",
-    "@types/three": "^0.147.0",
+    "@react-three/drei": "7.13.1",
+    "@react-three/fiber": "7.0.29",
+    "@types/three": "0.147.0",
     "moment": "latest",
     "prop-types": "^15.5.8",
     "react": "^16.x",
     "react-dom": "^16.x",
-    "three": "^0.147.0"
+    "three": "0.147.0"
   },
   "acceptDependencies": {
     "webpack": "^4.46.x"

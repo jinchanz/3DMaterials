@@ -8,6 +8,9 @@ import { PerspectiveCamera, DirectionalLight, DirectionalLightHelper, Color } fr
 import { OrbitControls } from '../../utils/OrbitControls';
 
 import './index.scss';
+import { Loading } from '@alifd/next';
+
+let lastChildren;
 
 const modes = ['translate', 'rotate', 'scale'];
 
@@ -43,10 +46,12 @@ function CustomScene(props) {
   </scene>
 }
 
-function Page(props) {
+const Content = (props) => {
+
   const canvasRef = useRef();
   const { children, getNode, designMode, componentId, background } =
     props || {};
+  lastChildren = children;
   const pageNode = designMode === 'design' ? getNode(componentId) : null;
   const [target, setTarget] = useState();
   const [hovered, setHovered] = useState(false);
@@ -63,8 +68,7 @@ function Page(props) {
           while (_target.parent && !_target.componentId) {
             _target = _target.parent;
           }
-          const { componentId } = _target;
-          const node = getNode(componentId);
+          const node = getNode(_target?.componentId);
           node.select();
           setTarget(_target);
         },
@@ -84,47 +88,73 @@ function Page(props) {
   camera.position.fromArray([0, 12, 30]);
   camera.lookAt(0, 0, 0);
   camera.updateMatrixWorld(true);
-  return (
-    <Canvas
-      ref={canvasRef}
-      className="threeDPage"
-      camera={camera}
-      shadows
-      onPointerMissed={() => setTarget(null)}
-    >
-      <Suspense fallback={null}>
-        <CustomScene background={background}>
-          <gridHelper args={[30]} />
-          {_children}
-          <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
-            <planeGeometry args={[30, 30, 10, 10]} />
-            <meshStandardMaterial color={new Color(background)}/>
-          </mesh>
-          <ambientLight />
-          <Light />
 
-          <OrbitControls
-            makeDefault
-            onEnd={(e) => {
-              if (!pageNode) return;
-              pageNode.setPropValue('cameraPosition', e?.target?.object.position?.toArray?.());
-            }}
-          />
-          {designMode === 'design' && target ? (
-            <TransformControls
-              object={target}
-              mode={modes[transformMode]}
-              onChange={() => {
-                const { componentId } = target;
-                const node = getNode(componentId);
-                node.setPropValue('rotation', target.rotation.toArray());
-                node.setPropValue('position', target.position.toArray());
-                node.setPropValue('scale', target.scale.toArray());
-              } } />
-          ) : null}
-        </CustomScene>
-      </Suspense>
-    </Canvas>
+  return <Canvas
+    ref={canvasRef}
+    className="threeDPage"
+    camera={camera}
+    shadows
+    onPointerMissed={() => setTarget(null)}
+  >
+    <CustomScene background={background}>
+      <gridHelper args={[30]} />
+      {_children}
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
+        <planeGeometry args={[30, 30, 10, 10]} />
+        <meshStandardMaterial color={new Color(background)}/>
+      </mesh>
+      <ambientLight />
+      <Light />
+
+      <OrbitControls
+        makeDefault
+        onEnd={(e) => {
+          if (!pageNode) return;
+          pageNode.setPropValue('cameraPosition', e?.target?.object.position?.toArray?.());
+        }}
+      />
+      {designMode === 'design' && target ? (
+        <TransformControls
+          object={target}
+          mode={modes[transformMode]}
+          onChange={() => {
+            const node = getNode(target?.componentId);
+            node.setPropValue('rotation', target.rotation.toArray());
+            node.setPropValue('position', target.position.toArray());
+            node.setPropValue('scale', target.scale.toArray());
+          } } />
+      ) : null}
+    </CustomScene>
+  </Canvas>;
+}
+
+const Fallback = (props) => {
+
+  const { children, ...otherProps } = props || {};
+
+  return <Loading fullScreen>
+    <Content {...otherProps} >
+      {
+        children
+      }
+    </Content>
+  </Loading>;
+
+}
+
+function Page(props) {
+
+  const { children, ...otherProps } = props || {};
+  
+  
+  return (
+    <Suspense fallback={<Fallback {...otherProps} >{lastChildren}</Fallback>}>
+      <Content {...otherProps} >
+        {
+          children
+        }
+      </Content>
+    </Suspense>
   );
 }
 
