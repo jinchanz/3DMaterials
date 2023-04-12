@@ -131,7 +131,7 @@ const Page: IPublicTypeComponentMetadata = {
             25,
             window.innerWidth / window.innerHeight,
             0.1,
-            200,
+            2000,
           );
           const cameraPosition = currentNode.getPropValue('camera.position');
           if (cameraPosition) {
@@ -155,6 +155,12 @@ const Page: IPublicTypeComponentMetadata = {
           const t = -targetCoord.y/vec.y;
 
           const result = new Vector3(targetCoord.x + t*vec.x, 0, targetCoord.z + t*vec.z);
+
+          const defaultTransform = node?.getPropValue('defaultTransform');
+          if (defaultTransform?.[1]) {
+            console.log('defaultTransform: ', defaultTransform)
+            result.setY(result.y + defaultTransform[1])
+          }
 
           node.setPropValue('position', result.toArray());
         },

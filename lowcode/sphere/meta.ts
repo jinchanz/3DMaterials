@@ -150,7 +150,9 @@ const snippets: IPublicTypeSnippet[] = [
     "screenshot": "/public/screenshots/sphere.png",
     "schema": {
       "componentName": "Sphere",
-      "props": {}
+      "props": {
+        defaultTransform: [0, 1, 0]
+      }
     }
   }
 ];

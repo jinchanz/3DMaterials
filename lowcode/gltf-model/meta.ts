@@ -47,7 +47,21 @@ const snippets: IPublicTypeSnippet[] = [
       "title": "DamagedHelmet",
       "componentName": "GltfModel",
       "props": {
-        modelUrl: '/public/models/glTF/DamagedHelmet.gltf'
+        modelUrl: '/public/models/glTF/DamagedHelmet.gltf',
+        defaultTransform: [0, 1, 0]
+      }
+    }
+  },
+  {
+    "title": "House",
+    "screenshot": "/public/screenshots/damaged-helmet.png",
+    "schema": {
+      "title": "House",
+      "componentName": "GltfModel",
+      "props": {
+        modelUrl: '/public/models/glTF/LittlestTokyo.glb',
+        defaultScale: 0.02,
+        defaultTransform: [0, 4, 0]
       }
     }
   }

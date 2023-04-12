@@ -38,7 +38,7 @@ const Light = () => {
 
 function CustomScene(props) {
   const { children, background, backgroundType, texture, ...otherProps } = props || {};
-  const { scene: sceneInst } = useThree();
+  const { gl, scene: sceneInst, setSize, camera } = useThree();
   const [environment, setEnverionment] = useState();
 
   useEffect(() => {
@@ -52,7 +52,16 @@ function CustomScene(props) {
     }
   }, [texture])
 
-  console.log('environment: ', environment)
+  useEffect(() => {
+    window.onresize = function () {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      camera.updateMatrixWorld(true);
+      setSize(window.innerWidth, window.innerHeight)
+      gl.render(sceneInst, camera)
+    };
+  }, [camera, setSize])
+
 
   if (environment) {
     sceneInst.environment = environment;
@@ -64,8 +73,6 @@ function CustomScene(props) {
     sceneInst.background = environment;
   }
 
-  console.log('backgroundType: ', backgroundType);
-  console.log('sceneInst: ', sceneInst);
 
   return <scene {...otherProps} background={sceneInst.background} environment={sceneInst.environment}>
     { children || null }
@@ -75,12 +82,12 @@ function CustomScene(props) {
 const Content = (props) => {
 
   const canvasRef = useRef();
-  const { children, getNode, designMode, componentId, background, camera: cameraProps = {
+  const { children, getNode, __designMode, componentId, background, camera: cameraProps = {
     position: [0, 12, 30]
   }, backgroundType, texture } =
     props || {};
   lastChildren = children;
-  const pageNode = designMode === 'design' ? getNode(componentId) : null;
+  const pageNode = __designMode === 'design' ? getNode(componentId) : null;
   const [target, setTarget] = useState();
   const [hovered, setHovered] = useState(false);
   const [transformMode, setTransformMode] = useState(0);
@@ -115,7 +122,7 @@ const Content = (props) => {
     }
   });
   
-  const defaultCamera = React.useMemo(() => new PerspectiveCamera(cameraProps.fov || 25, window.innerWidth / window.innerHeight, 0.1, 200), [cameraProps] )
+  const defaultCamera = React.useMemo(() => new PerspectiveCamera(cameraProps.fov || 25, window.innerWidth / window.innerHeight, 0.1, 2000), [cameraProps] )
   
   const [camera, setCamera] = useState(defaultCamera);
 
@@ -155,7 +162,7 @@ const Content = (props) => {
         makeDefault
         onEnd={onEnd}
       />
-      {designMode === 'design' && target ? (
+      {__designMode === 'design' && target ? (
         <TransformControls
           object={target}
           mode={modes[transformMode]}

@@ -150,7 +150,9 @@ const snippets: Snippet[] = [
     "screenshot": "/public/screenshots/box.png",
     "schema": {
       "componentName": "Box",
-      "props": {}
+      "props": {
+        defaultTransform: [0, 0.5, 0]
+      }
     }
   }
 ];
