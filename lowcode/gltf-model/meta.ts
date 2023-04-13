@@ -64,6 +64,17 @@ const snippets: IPublicTypeSnippet[] = [
         defaultTransform: [0, 4, 0]
       }
     }
+  },
+  {
+    "title": "Soldier",
+    "screenshot": "/public/screenshots/damaged-helmet.png",
+    "schema": {
+      "title": "Soldier",
+      "componentName": "GltfModel",
+      "props": {
+        modelUrl: '/public/models/glTF/Soldier.glb'
+      }
+    }
   }
 ];
 

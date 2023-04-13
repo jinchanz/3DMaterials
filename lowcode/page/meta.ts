@@ -137,7 +137,7 @@ const Page: IPublicTypeComponentMetadata = {
           if (cameraPosition) {
             camera.position.set(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
           } else {
-            camera.position.set(0, 12, 30);
+            camera.position.set(0, 8, 30);
           }
           camera.lookAt(0, 0, 0);
           camera.updateMatrixWorld(true);

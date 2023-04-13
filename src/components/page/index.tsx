@@ -1,13 +1,13 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { TransformControls, useCursor, useHelper } from '@react-three/drei';
+import { TransformControls, useCursor, OrbitControls } from '@react-three/drei';
 
 import { PerspectiveCamera, Color, EquirectangularReflectionMapping } from 'three';
 
 import { RGBELoader } from 'three-stdlib';
 
-import { OrbitControls } from '../../utils/OrbitControls';
+// import { OrbitControls } from '../../utils/OrbitControls';
 
 import './index.scss';
 import { Loading } from '@alifd/next';
@@ -39,7 +39,7 @@ const Light = () => {
 function CustomScene(props) {
   const { children, background, backgroundType, texture, ...otherProps } = props || {};
   const { gl, scene: sceneInst, setSize, camera } = useThree();
-  const [environment, setEnverionment] = useState();
+  const [environment, setEnvironment] = useState();
 
   useEffect(() => {
     if (texture) {
@@ -47,7 +47,7 @@ function CustomScene(props) {
         .setPath( '/public/textures/' )
         .load( texture, ( hdrEquirect ) => {
           hdrEquirect.mapping = EquirectangularReflectionMapping;
-          setEnverionment(hdrEquirect)
+          setEnvironment(hdrEquirect)
         });
     }
   }, [texture])
@@ -73,8 +73,7 @@ function CustomScene(props) {
     sceneInst.background = environment;
   }
 
-
-  return <scene {...otherProps} background={sceneInst.background} environment={sceneInst.environment}>
+  return <scene {...otherProps}>
     { children || null }
   </scene>
 }
@@ -83,7 +82,7 @@ const Content = (props) => {
 
   const canvasRef = useRef();
   const { children, getNode, __designMode, componentId, background, camera: cameraProps = {
-    position: [0, 12, 30]
+    position: [0, 8, 30]
   }, backgroundType, texture } =
     props || {};
   lastChildren = children;
@@ -97,23 +96,27 @@ const Content = (props) => {
   React.Children.map(children, (child) => {
     if (child.type !== 'div') {
       const overrideProps = {
-        onClick: (event) => {
-          // console.log('event: ', event);
-          let _target = event.object;
-          while (_target.parent && !_target.componentId) {
-            _target = _target.parent;
-          }
-          const node = getNode(_target?.componentId);
-          node.select();
-          setTarget(_target);
-        },
-        onPointerOver: () => setHovered(true),
-        onPointerOut: () => setHovered(false),
-        onContextMenu: (e) => {
-          e.stopPropagation();
-          setTransformMode((transformMode + 1) % modes.length);
-        },
+        
       };
+      if (__designMode === 'design') {
+        Object.assign(overrideProps, {
+          onClick: (event) => {
+            let _target = event.object;
+            while (_target.parent && !_target.componentId) {
+              _target = _target.parent;
+            }
+            const node = getNode(_target?.componentId);
+            node.select();
+            setTarget(_target);
+          },
+          onPointerOver: () => setHovered(true),
+          onPointerOut: () => setHovered(false),
+          onContextMenu: (e) => {
+            e.stopPropagation();
+            setTransformMode((transformMode + 1) % modes.length);
+          },
+        })
+      }
       if (!child.type.isLight) {
         overrideProps.castShadow = true;
       }
@@ -127,7 +130,7 @@ const Content = (props) => {
   const [camera, setCamera] = useState(defaultCamera);
 
   React.useEffect(() => {
-    camera.position.fromArray(cameraProps?.position || [0,12,30]);
+    camera.position.fromArray(cameraProps?.position || [0, 8, 30]);
     camera.lookAt(0, 0, 0);
     camera.updateMatrixWorld(true);
     setCamera(camera);
@@ -151,12 +154,12 @@ const Content = (props) => {
     onPointerMissed={() => setTarget(null)}
   >
     <CustomScene background={background} backgroundType={backgroundType} texture={texture}>
-      <gridHelper args={[30]} />
-      {_children}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
-        <planeGeometry args={[30, 30, 10, 10]} />
-        <meshStandardMaterial/>
+        <planeGeometry args={[100, 100]} />
+        <meshPhongMaterial color={0x999999} depthWrite={false}/>
       </mesh>
+      <gridHelper args={[100, 100, 0x888888, 0x888888]} />
+      {_children}
 
       <OrbitControls
         makeDefault
