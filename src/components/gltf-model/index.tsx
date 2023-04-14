@@ -3,11 +3,12 @@ import { useGLTF } from '@react-three/drei';
 
 import { AnimationMixer, Box3, Object3D, Vector3 } from 'three';
 import { useFrame } from '@react-three/fiber';
-import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader';
+
+import { SkeletonUtils, GLTF } from 'three-stdlib';
 
 function GltfModel(props = {}) {
 
-  const { modelUrl, defaultTransform, defaultScale, __designMode, ...otherProps } = props || {}
+  const { modelUrl, defaultTransform, defaultScale, __designMode, currentAnimation = 0, enableAnimationInEditor, ...otherProps } = props || {}
 
   const gltf: GLTF = useGLTF(modelUrl);
   const { scene, animations } = gltf;
@@ -19,7 +20,7 @@ function GltfModel(props = {}) {
 	const size = box.getSize( new Vector3( ) );
 	scene.position.set( -c.x, size.y / 2 - c.y, -c.z );
 
-  const _scene = scene.clone(true);
+  const _scene = SkeletonUtils.clone(scene);
   _scene.traverse((child) => {
     if (child.isMesh) {
       child.castShadow = true;
@@ -29,9 +30,9 @@ function GltfModel(props = {}) {
   baseModel.add(_scene);
 
   let mixer;
-  if (animations?.length && __designMode !== 'design') {
+  if (animations?.length && (__designMode !== 'design' || enableAnimationInEditor)) {
     mixer = new AnimationMixer( baseModel );
-    mixer.clipAction( animations[ 0 ] ).play();
+    mixer.clipAction( animations[ currentAnimation || 0 ] ).play();
   }
 
   useFrame((state, delta) => {

@@ -278,6 +278,54 @@ const DirectionalLight: IPublicTypeComponentMetadata = {
           }
         }
       },
+      {
+        name: '!shadowMap',
+        title: '阴影贴图',
+        type: 'group',
+        display: 'accordion',
+        items: [
+          {
+            name: 'shadow-mapSize-width',
+            title: 'width',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'shadow-mapSize-height',
+            title: 'height',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'shadow-camera-near',
+            title: 'near',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'shadow-camera-far',
+            title: 'far',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'shadow-camera-left',
+            title: 'left',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'shadow-camera-top',
+            title: 'top',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'shadow-camera-right',
+            title: 'right',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'shadow-camera-bottom',
+            title: 'bottom',
+            setter: 'NumberSetter'
+          },
+        ]
+      }
     ],
     supports: {
       style: false,
@@ -293,7 +341,14 @@ const DirectionalLight: IPublicTypeComponentMetadata = {
         title: '平行光',
         componentName: 'DirectionalLight',
         props: {
-          intensity: 1
+          intensity: 1,
+          'shadow-mapSize-width': 1024,
+          'shadow-mapSize-height': 1024,
+          'shadow-camera-far': 50,
+          'shadow-camera-left': -100,
+          'shadow-camera-right': 100,
+          'shadow-camera-top': 100,
+          'shadow-camera-bottom': -100,
         }
       }
     }

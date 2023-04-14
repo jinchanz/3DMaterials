@@ -1,40 +1,23 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { TransformControls, useCursor, OrbitControls } from '@react-three/drei';
+import { useCursor, OrbitControls } from '@react-three/drei';
 
-import { PerspectiveCamera, Color, EquirectangularReflectionMapping } from 'three';
+import { PerspectiveCamera, Color, EquirectangularReflectionMapping, Vector3, DoubleSide } from 'three';
 
 import { RGBELoader } from 'three-stdlib';
 
-// import { OrbitControls } from '../../utils/OrbitControls';
+import { TransformControls } from '../../utils/TransformControls';
 
 import './index.scss';
 import { Loading } from '@alifd/next';
 
 let lastChildren;
 
-const modes = ['translate', 'rotate', 'scale'];
+// 记录当前被操控的对象，当切换选择对象时，调用 detach 方法释放操控
+let currentTransformControlTarget;
 
-const Light = () => {
-  const dirLight = useRef(null);
-  return (
-    <directionalLight
-      ref={dirLight}
-      position={[10, 10, 10]}
-      intensity={1.5}
-      shadow-mapSize-width={1024}
-      shadow-mapSize-height={1024}
-      shadow-camera-far={50}
-      castShadow
-      shadow-camera-left={-100}
-      shadow-camera-right={100}
-      shadow-camera-top={100}
-      // eslint-disable-next-line react/no-unknown-property
-      shadow-camera-bottom={-100}
-    />
-  );
-};
+const modes = ['translate', 'rotate', 'scale'];
 
 function CustomScene(props) {
   const { children, background, backgroundType, texture, ...otherProps } = props || {};
@@ -60,7 +43,10 @@ function CustomScene(props) {
       setSize(window.innerWidth, window.innerHeight)
       gl.render(sceneInst, camera)
     };
-  }, [camera, setSize])
+    return () => {
+      window.onresize = null;
+    }
+  }, [camera, gl, sceneInst, setSize])
 
 
   if (environment) {
@@ -87,7 +73,7 @@ const Content = (props) => {
     props || {};
   lastChildren = children;
   const pageNode = __designMode === 'design' ? getNode(componentId) : null;
-  const [target, setTarget] = useState();
+  let [target, setTarget] = useState();
   const [hovered, setHovered] = useState(false);
   const [transformMode, setTransformMode] = useState(0);
   useCursor(hovered);
@@ -134,6 +120,11 @@ const Content = (props) => {
     camera.lookAt(0, 0, 0);
     camera.updateMatrixWorld(true);
     setCamera(camera);
+
+    return () => {
+      setCamera(null)
+    }
+
   }, [cameraProps, camera])
 
   const onEnd = useMemo(() => {
@@ -141,10 +132,20 @@ const Content = (props) => {
       if (!pageNode) return;
       pageNode.setPropValue('camera.position', e?.target?.object.position?.toArray?.());
       pageNode.document.selection.clear();
-      pageNode.select();
+      if (target) {
+        getNode(target.componentId).select();
+      } else {
+        pageNode.select();
+      }
     };
-  }, [pageNode])
+  }, [getNode, pageNode, target])
 
+  useEffect(() => {
+    if (currentTransformControlTarget) {
+      currentTransformControlTarget.detach();
+      currentTransformControlTarget = null;
+    }
+  }, [target]);
 
   return <Canvas
     ref={canvasRef}
@@ -169,11 +170,12 @@ const Content = (props) => {
         <TransformControls
           object={target}
           mode={modes[transformMode]}
-          onChange={() => {
-            const node = getNode(target?.componentId);
-            node.setPropValue('rotation', target.rotation.toArray());
-            node.setPropValue('position', target.position.toArray());
-            node.setPropValue('scale', target.scale.toArray());
+          onMouseUp={(e) => {
+            const node = getNode(e.target.object?.componentId);
+            node.setPropValue('rotation', e.target.object.rotation.toArray());
+            node.setPropValue('position', e.target.object.position.toArray());
+            node.setPropValue('scale', e.target.object.scale.toArray());
+            currentTransformControlTarget = e.target;
           } } />
       ) : null}
     </CustomScene>
@@ -186,9 +188,9 @@ const Fallback = (props) => {
 
   return <Loading fullScreen>
     <Content {...otherProps} >
-      {
+      {/* {
         children
-      }
+      } */}
     </Content>
   </Loading>;
 
@@ -218,7 +220,24 @@ AmbientLight.isLight = true;
 AmbientLight.AmbientLight = true;
 
 const DirectionalLight = (props) => {
-  return <directionalLight {...props} />
+  const { position, scale, rotation, onClick, onContextMenu, onPointerOut, onPointerOver, componentId, __designMode, ...otherProps } = props;
+  if (__designMode !== 'design') {
+    return <directionalLight position={position} {...otherProps} />
+  }
+  return <mesh
+    scale={scale}
+    position={position}
+    rotation={rotation}
+    onClick={onClick}
+    onContextMenu={onContextMenu}
+    onPointerOut={onPointerOut}
+    onPointerOver={onPointerOver}
+    componentId={componentId}
+  >
+    <sphereGeometry />
+    <meshStandardMaterial emissive={new Color('#f8e71c')}/>
+    <directionalLight {...otherProps} />
+  </mesh>
 };
 
 DirectionalLight.isLight = true;

@@ -19,7 +19,44 @@ const FerrariMeta: IPublicTypeComponentMetadata = {
   },
   "configure": {
     "props": [
-      
+      {
+        name: 'position',
+        title: '坐标',
+        setter: {
+          componentName: 'ObjectSetter',
+          props: {
+            config: {
+              items: [
+                {
+                  name: '0',
+                  title: 'X',
+                  setter: 'NumberSetter'
+                },
+                {
+                  name: '1',
+                  title: 'Y',
+                  setter: 'NumberSetter'
+                },
+                {
+                  name: '2',
+                  title: 'Z',
+                  setter: 'NumberSetter'
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        name: 'currentAnimation',
+        title: '当前动画',
+        setter: 'NumberSetter'
+      },
+      {
+        name: 'enableAnimationInEditor',
+        title: '播放动画',
+        setter: 'BoolSetter'
+      }
     ],
     "supports": {
       loop: false,
