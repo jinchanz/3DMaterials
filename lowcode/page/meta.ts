@@ -116,7 +116,9 @@ const Page: IPublicTypeComponentMetadata = {
       condition: false,
       loop: false
     },
-    component: {},
+    component: {
+      isMinimalRenderUnit: true
+    },
     advanced: {
       callbacks: {
         onNodeAdd: (node, currentNode) => {
@@ -170,7 +172,8 @@ const Page: IPublicTypeComponentMetadata = {
 };
 
 const AmbientLight: IPublicTypeComponentMetadata = {
-  group: '光源',
+  group: '系统',
+  category: '光源',
   componentName: 'AmbientLight',
   title: 'AmbientLight',
   docUrl: '',
@@ -220,7 +223,8 @@ const AmbientLight: IPublicTypeComponentMetadata = {
 };
 
 const DirectionalLight: IPublicTypeComponentMetadata = {
-  group: '光源',
+  group: '系统',
+  category: '光源',
   componentName: 'DirectionalLight',
   title: 'DirectionalLight',
   docUrl: '',
@@ -355,8 +359,83 @@ const DirectionalLight: IPublicTypeComponentMetadata = {
   ]
 };
 
+const PerspectiveCameraMeta: IPublicTypeComponentMetadata = {
+  group: '系统',
+  category: '相机',
+  componentName: 'PerspectiveCamera',
+  title: '透视相机',
+  docUrl: '',
+  screenshot: '/public/screenshots/directional.png',
+  devMode: 'proCode',
+  npm: {
+    package: '@alilc/3d-materials',
+    version: '0.1.0',
+    exportName: 'PerspectiveCamera',
+    main: 'src/index.tsx',
+    destructuring: true,
+    subName: '',
+  },
+  configure: {
+    props: [
+      {
+        name: 'position',
+        title: '坐标',
+        setter: {
+          componentName: 'ObjectSetter',
+          props: {
+            config: {
+              items: [
+                {
+                  name: '0',
+                  title: 'X',
+                  setter: 'NumberSetter'
+                },
+                {
+                  name: '1',
+                  title: 'Y',
+                  setter: 'NumberSetter'
+                },
+                {
+                  name: '2',
+                  title: 'Z',
+                  setter: 'NumberSetter'
+                }
+              ]
+            }
+          }
+        }
+      },
+    ],
+    supports: {
+      style: false,
+      condition: false,
+      loop: false
+    },
+  },
+  snippets: [
+    {
+      title: '透视相机',
+      screenshot: '/public/screenshots/directional.png',
+      schema: {
+        title: '透视相机',
+        componentName: 'PerspectiveCamera',
+        props: {
+          position: [
+            0, 0, 10
+          ],
+          fov: 25,
+          near: 1,
+          far: 50,
+          aspect: 9/16,
+        }
+      }
+    }
+  ]
+};
+
 export default [
   Page,
   AmbientLight,
-  DirectionalLight
+  DirectionalLight,
+  PerspectiveCameraMeta
 ];

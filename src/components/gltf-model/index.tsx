@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { createElement, forwardRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 
 import { AnimationMixer, Box3, Object3D, Vector3 } from 'three';
@@ -6,7 +6,7 @@ import { useFrame } from '@react-three/fiber';
 
 import { SkeletonUtils, GLTF } from 'three-stdlib';
 
-function GltfModel(props = {}) {
+function GltfModel(props = {}, ref) {
 
   const { 
     __designMode, 
@@ -56,10 +56,10 @@ function GltfModel(props = {}) {
   }
 
   return (
-    <mesh {...otherProps}>
+    <mesh {...otherProps} ref={ref}>
       <primitive object={baseModel} />
     </mesh>
   );
 }
 
-export default GltfModel;
+export default forwardRef(GltfModel);

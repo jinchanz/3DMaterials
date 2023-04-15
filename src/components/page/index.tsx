@@ -1,18 +1,19 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { useCursor, OrbitControls, useFBO } from '@react-three/drei';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { useCursor, OrbitControls, useHelper, Html, PerspectiveCamera as PerspectiveCameraC, PointerLockControls } from '@react-three/drei';
 
-import { PerspectiveCamera, Color, EquirectangularReflectionMapping, Vector3, DoubleSide } from 'three';
+import { PerspectiveCamera, Color, EquirectangularReflectionMapping, CameraHelper, Vector3 } from 'three';
 
 import { RGBELoader } from 'three-stdlib';
 
-import { createStore } from 'zustand';
+import { create } from 'zustand'
 
 import { TransformControls } from '../../utils/TransformControls';
 
 import './index.scss';
 import { Loading } from '@alifd/next';
+import GltfModel from '../gltf-model';
 
 let lastChildren;
 
@@ -21,45 +22,115 @@ let currentTransformControlTarget;
 
 const modes = ['translate', 'rotate', 'scale'];
 
-const useStore = createStore((set, get) => ({
-  ACam: null,
-  BCam: null
+const useStore = create((set, get) => ({
+  PerspectiveCamera: null
 }))
 
+
+
+const velocity = new Vector3();
+const direction = new Vector3();
+let prevTime = performance.now();
+let moveForward = false;
+let moveLeft = false;
+let moveBackward = false;
+let moveRight = false;
+let canJump = false;
+
+const onKeyDown = function ( event ) {
+  switch ( event.code ) {
+    case 'ArrowUp':
+    case 'KeyW':
+      moveForward = true
+      break;
+
+    case 'ArrowLeft':
+    case 'KeyA':
+      moveLeft = true;
+      break;
+
+    case 'ArrowDown':
+    case 'KeyS':
+      moveBackward = true;
+      break;
+
+    case 'ArrowRight':
+    case 'KeyD':
+      moveRight = true;
+      break;
+    case 'Space':
+      if ( canJump === true ) velocity.y += 200;
+      canJump = false;
+      break;
+    default:
+      break;
+  }
+};
+
+const onKeyUp = function ( event ) {
+  switch ( event.code ) {
+    case 'ArrowUp':
+    case 'KeyW':
+      moveForward = false;
+      break;
+
+    case 'ArrowLeft':
+    case 'KeyA':
+      moveLeft = false;
+      break;
+
+    case 'ArrowDown':
+    case 'KeyS':
+      moveBackward = false;
+      break;
+
+    case 'ArrowRight':
+    case 'KeyD':
+      moveRight = false;
+      break;
+    default:
+      break;
+
+  }
+  console.log('on key up: ', event.code, moveForward, moveBackward)
+
+};
+
+document.addEventListener( 'keydown', onKeyDown );
+document.addEventListener( 'keyup', onKeyUp );
+
 function CustomScene(props) {
-  const { children, background, backgroundType, texture, ...otherProps } = props || {};
+  const { children, background, backgroundType, texture, __designMode, ...otherProps } = props || {};
   const { gl, scene: sceneInst, setSize, camera } = useThree();
   const [environment, setEnvironment] = useState();
 
-  const aTarget = useFBO(window.innerWidth / 4, window.innerHeight / 4)
-  const { ACam } = useStore((state) => ({ ACam: state.ACam }))
+  const { PerspectiveCamera: playerCameraRef } = useStore((state) => ({ PerspectiveCamera: state.PerspectiveCamera }))
 
   useFrame(({ gl, camera, scene }) => {
+    if (__designMode !== 'design') {
+      gl.autoClear = false
+      gl.clear()
+      if (playerCameraRef?.current) {
+        const width = window.innerHeight*playerCameraRef?.current.aspect || 100;
+        gl.setViewport((window.innerWidth - width)/2, 0, window.innerHeight*playerCameraRef?.current.aspect, window.innerHeight)
+        gl.render(scene, playerCameraRef.current)
+      }
+      return;
+    }
     gl.autoClear = false
-
-    scene.background = debugBG
-
-    /** Render scene from camera A to a render target */
-    scene.overrideMaterial = mnm
-    gl.setRenderTarget(aTarget)
-    gl.render(scene, ACam.current)
-
-    /** Render scene from camera B to a different render target */
-    scene.overrideMaterial = dmm
-    gl.setRenderTarget(bTarget)
-    gl.render(scene, BCam.current)
-
+    gl.clear()
+    const originalBg = scene.background;
+    
     scene.background = originalBg
-    // render main scene
-    scene.overrideMaterial = null
-    gl.setRenderTarget(null)
+    gl.setViewport(0, 0, window.innerWidth, window.innerHeight)
     gl.render(scene, camera)
-
-    // render GUI panels on top of main scene
-    gl.render(guiScene, guiCamera.current)
+    if (playerCameraRef?.current) {
+      gl.setViewport(0, 0, 90, 160)
+      gl.render(scene, playerCameraRef.current)
+    }
     gl.autoClear = true
-  }, 1)
 
+  }, 1)
 
   useEffect(() => {
     if (texture) {
@@ -85,6 +156,48 @@ function CustomScene(props) {
     }
   }, [camera, gl, sceneInst, setSize])
 
+  const playerControlRef = useRef();
+  const playerRef = useRef();
+
+  useFrame(() => {
+    if (!playerControlRef?.current) {
+      // console.log('playerRef: ', playerRef.current)
+      return;
+    };
+    const playerControl = playerControlRef.current;
+    if (!playerControl.isLocked) {
+      return;
+    }
+    const time = performance.now();
+    const delta = ( time - prevTime ) / 1000;
+    velocity.x -= velocity.x * 10 * delta;
+    velocity.z -= velocity.z * 10 * delta;
+
+    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+    
+    direction.z = Number( !!moveForward ) - Number( !!moveBackward );
+    direction.x = Number( !!moveRight ) - Number( !!moveLeft );
+    direction.normalize(); // this ensures consistent movements in all directions
+
+    if ( moveForward || moveBackward ) velocity.z -= direction.z * 400 * delta;
+    if ( moveLeft || moveRight ) velocity.x -= direction.x * 400 * delta;
+
+    playerControl.moveRight( - velocity.x * delta );
+    playerControl.moveForward( - velocity.z * delta );
+
+    playerControl.getObject().position.y += ( velocity.y * delta ); // new behavior
+
+    if ( playerControl.getObject().position.y < 2 ) {
+
+      velocity.y = 0;
+      playerControl.getObject().position.y = 2;
+
+      canJump = true;
+
+    }
+    // playerRef.current.position.copy(new Vector3(playerControl.getObject().position.x, 0, playerControl.getObject().position.z))
+    prevTime = time;
+  }, 1);
 
   if (environment) {
     sceneInst.environment = environment;
@@ -95,8 +208,9 @@ function CustomScene(props) {
   } else if (backgroundType === 'texture' && environment) {
     sceneInst.background = environment;
   }
-
   return <scene {...otherProps}>
+    { __designMode === 'design' ? null : playerCameraRef?.current && <PointerLockControls camera={playerCameraRef?.current} ref={playerControlRef} /> }
+    
     { children || null }
   </scene>
 }
@@ -181,6 +295,8 @@ const Content = (props) => {
     }
   }, [target]);
 
+  const { PerspectiveCamera: playerCameraRef } = useStore((state) => ({ PerspectiveCamera: state.PerspectiveCamera }))
+
   return <Canvas
     ref={canvasRef}
     className="threeDPage"
@@ -188,7 +304,7 @@ const Content = (props) => {
     shadows
     onPointerMissed={() => setTarget(null)}
   >
-    <CustomScene background={background} backgroundType={backgroundType} texture={texture}>
+    <CustomScene __designMode={__designMode} background={background} backgroundType={backgroundType} texture={texture}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
         <planeGeometry args={[100, 100]} />
         <meshPhongMaterial color={0x999999} depthWrite={false}/>
@@ -196,10 +312,10 @@ const Content = (props) => {
       <gridHelper args={[100, 100, 0x888888, 0x888888]} />
       {_children}
 
-      <OrbitControls
+      { __designMode === 'design' ? <OrbitControls
         makeDefault
         onEnd={onEnd}
-      />
+      /> : null}
       {__designMode === 'design' && target ? (
         <TransformControls
           object={target}
@@ -276,4 +392,50 @@ const DirectionalLight = (props) => {
 
 DirectionalLight.isLight = true;
 
-export { Page, AmbientLight, DirectionalLight };
+const PerspectiveCameraComp = (props) => {
+
+  const { label, aspect, position, scale, rotation, onClick, onContextMenu, onPointerOut, onPointerOver, componentId, __designMode, ...otherProps } = props;
+
+  const ref = React.useRef()
+  useEffect(() => {
+    if (ref?.current) {
+      useStore.setState({
+        PerspectiveCamera: ref
+      })
+    }
+    ref.current.aspect = __designMode !== 'design' ? window.innerWidth/window.innerHeight : aspect || 1;
+    ref.current.updateProjectionMatrix();
+  }, [label, otherProps.aspect])
+  useHelper(ref, __designMode !== 'design' ? null : CameraHelper)
+
+  return <mesh
+    scale={scale}
+    position={position}
+    rotation={rotation}
+    onClick={onClick}
+    onContextMenu={onContextMenu}
+    onPointerOut={onPointerOut}
+    onPointerOver={onPointerOver}
+    componentId={componentId}
+  >
+    { 
+      __designMode === 'design' ?
+      <>
+        <Html className="label">{'相机'}</Html> 
+        <sphereGeometry />
+        <meshStandardMaterial emissive={new Color('red')}/>
+      </> : null
+    }
+    <Suspense fallback={null}>
+      <GltfModel
+        currentAnimation={3} 
+        modelUrl='/public/models/glTF/Soldier.glb' 
+      />
+    </Suspense>
+    <PerspectiveCameraC {...otherProps} aspect={__designMode !== 'design' ? window.innerWidth/window.innerHeight : aspect || 1} manual frustumCulled ref={ref} />
+  </mesh>
+}
+
+PerspectiveCameraComp.isPerspectiveCamera = true;
+
+export { Page, AmbientLight, DirectionalLight, PerspectiveCameraComp };
