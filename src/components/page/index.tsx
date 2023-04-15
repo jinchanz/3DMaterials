@@ -1,11 +1,13 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { useCursor, OrbitControls } from '@react-three/drei';
+import { useCursor, OrbitControls, useFBO } from '@react-three/drei';
 
 import { PerspectiveCamera, Color, EquirectangularReflectionMapping, Vector3, DoubleSide } from 'three';
 
 import { RGBELoader } from 'three-stdlib';
+
+import { createStore } from 'zustand';
 
 import { TransformControls } from '../../utils/TransformControls';
 
@@ -19,10 +21,45 @@ let currentTransformControlTarget;
 
 const modes = ['translate', 'rotate', 'scale'];
 
+const useStore = createStore((set, get) => ({
+  ACam: null,
+  BCam: null
+}))
+
 function CustomScene(props) {
   const { children, background, backgroundType, texture, ...otherProps } = props || {};
   const { gl, scene: sceneInst, setSize, camera } = useThree();
   const [environment, setEnvironment] = useState();
+
+  const aTarget = useFBO(window.innerWidth / 4, window.innerHeight / 4)
+  const { ACam } = useStore((state) => ({ ACam: state.ACam }))
+
+  useFrame(({ gl, camera, scene }) => {
+    gl.autoClear = false
+
+    scene.background = debugBG
+
+    /** Render scene from camera A to a render target */
+    scene.overrideMaterial = mnm
+    gl.setRenderTarget(aTarget)
+    gl.render(scene, ACam.current)
+
+    /** Render scene from camera B to a different render target */
+    scene.overrideMaterial = dmm
+    gl.setRenderTarget(bTarget)
+    gl.render(scene, BCam.current)
+
+    scene.background = originalBg
+    // render main scene
+    scene.overrideMaterial = null
+    gl.setRenderTarget(null)
+    gl.render(scene, camera)
+
+    // render GUI panels on top of main scene
+    gl.render(guiScene, guiCamera.current)
+    gl.autoClear = true
+  }, 1)
+
 
   useEffect(() => {
     if (texture) {
@@ -102,9 +139,6 @@ const Content = (props) => {
             setTransformMode((transformMode + 1) % modes.length);
           },
         })
-      }
-      if (!child.type.isLight) {
-        overrideProps.castShadow = true;
       }
       const _child = React.cloneElement(child, overrideProps);
       _children.push(_child);

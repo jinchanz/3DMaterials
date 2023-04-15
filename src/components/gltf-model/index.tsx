@@ -8,7 +8,17 @@ import { SkeletonUtils, GLTF } from 'three-stdlib';
 
 function GltfModel(props = {}) {
 
-  const { modelUrl, defaultTransform, defaultScale, __designMode, currentAnimation = 0, enableAnimationInEditor, ...otherProps } = props || {}
+  const { 
+    __designMode, 
+    modelUrl, 
+    defaultTransform, 
+    defaultScale, 
+    currentAnimation = 0, 
+    enableAnimationInEditor, 
+    castShadow,
+    receiveShadow,
+    ...otherProps 
+  } = props || {}
 
   const gltf: GLTF = useGLTF(modelUrl);
   const { scene, animations } = gltf;
@@ -23,8 +33,8 @@ function GltfModel(props = {}) {
   const _scene = SkeletonUtils.clone(scene);
   _scene.traverse((child) => {
     if (child.isMesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
+      child.castShadow = castShadow;
+      child.receiveShadow = receiveShadow;
     }
   });
   baseModel.add(_scene);

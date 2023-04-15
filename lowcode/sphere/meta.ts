@@ -1,6 +1,8 @@
 
 import { IPublicTypeComponentMetadata, IPublicTypeSnippet } from '@alilc/lowcode-types';
 
+import { default as LevaVec3 } from '../setters/vec3'
+
 const SphereMeta: IPublicTypeComponentMetadata = {
   group: '模型',
   category: '基础几何',
@@ -26,35 +28,21 @@ const SphereMeta: IPublicTypeComponentMetadata = {
         display: 'block',
         items: [
           {
-            name: 'object.castShadow',
+            name: 'castShadow',
+            title: '透射阴影',
             setter: 'BoolSetter',
           },
           {
-            name: 'object.position',
+            name: 'receiveShadow',
+            title: '接受阴影',
+            setter: 'BoolSetter',
+          },
+          {
+            name: 'position',
             title: '坐标',
             setter: {
-              componentName: 'ObjectSetter',
-              props: {
-                config: {
-                  items: [
-                    {
-                      name: '0',
-                      title: 'X',
-                      setter: 'NumberSetter'
-                    },
-                    {
-                      name: '1',
-                      title: 'Y',
-                      setter: 'NumberSetter'
-                    },
-                    {
-                      name: '2',
-                      title: 'Z',
-                      setter: 'NumberSetter'
-                    }
-                  ]
-                }
-              }
+              componentName: LevaVec3,
+              isDynamic: false
             }
           },
         ]
@@ -74,7 +62,7 @@ const SphereMeta: IPublicTypeComponentMetadata = {
               }
             },
             "name": "material.color",
-            "setter": "ColorSetter"
+            "setter": 'ColorSetter'
           },{
             "title": {
               "label": {
@@ -151,7 +139,8 @@ const snippets: IPublicTypeSnippet[] = [
     "schema": {
       "componentName": "Sphere",
       "props": {
-        defaultTransform: [0, 1, 0]
+        defaultTransform: [0, 1, 0],
+        castShadow: true
       }
     }
   }

@@ -4,13 +4,12 @@ import { Color } from 'three'
 
 function Sphere(props) {
 
-  const { material={}, object={}, ...otherProps } = props || {};
+  const { material={}, ...otherProps } = props || {};
 
   const { color, ...otherMaterial } = material;
 
   return (
     <mesh
-      {...object}
       {...otherProps}
     >
       <sphereGeometry  />

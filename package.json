@@ -69,7 +69,8 @@
     "prop-types": "^15.5.8",
     "react": "^16.x",
     "react-dom": "^16.x",
-    "three": "0.147.0"
+    "three": "0.147.0",
+    "zustand": "^4.3.7"
   },
   "acceptDependencies": {
     "webpack": "^4.46.x"

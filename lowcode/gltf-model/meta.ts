@@ -20,6 +20,16 @@ const FerrariMeta: IPublicTypeComponentMetadata = {
   "configure": {
     "props": [
       {
+        name: 'castShadow',
+        title: '透射阴影',
+        setter: 'BoolSetter',
+      },
+      {
+        name: 'receiveShadow',
+        title: '接受阴影',
+        setter: 'BoolSetter',
+      },
+      {
         name: 'position',
         title: '坐标',
         setter: {
