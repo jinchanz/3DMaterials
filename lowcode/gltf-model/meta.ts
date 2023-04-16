@@ -1,5 +1,7 @@
 
 import { IPublicTypeComponentMetadata, IPublicTypeSnippet } from '@alilc/lowcode-types';
+import TextureSetter from '../setters/texture';
+import Vec3Setter from '../setters/vec3';
 
 const FerrariMeta: IPublicTypeComponentMetadata = {
   group: '模型',
@@ -20,52 +22,56 @@ const FerrariMeta: IPublicTypeComponentMetadata = {
   "configure": {
     "props": [
       {
-        name: 'castShadow',
-        title: '透射阴影',
-        setter: 'BoolSetter',
+        name: '!object',
+        title: '对象',
+        type: 'group',
+        display: 'accordion',
+        items: [
+          {
+            name: 'castShadow',
+            title: '透射阴影',
+            setter: 'BoolSetter',
+          },
+          {
+            name: 'receiveShadow',
+            title: '接受阴影',
+            setter: 'BoolSetter',
+          },
+          {
+            name: 'position',
+            title: '坐标',
+            setter: {
+              componentName: Vec3Setter,
+              isDynamic: false
+            }
+          },
+          {
+            name: 'currentAnimation',
+            title: '当前动画',
+            setter: 'NumberSetter'
+          },
+          {
+            name: 'enableAnimationInEditor',
+            title: '播放动画',
+            setter: 'BoolSetter'
+          },
+        ]
       },
       {
-        name: 'receiveShadow',
-        title: '接受阴影',
-        setter: 'BoolSetter',
-      },
-      {
-        name: 'position',
-        title: '坐标',
-        setter: {
-          componentName: 'ObjectSetter',
-          props: {
-            config: {
-              items: [
-                {
-                  name: '0',
-                  title: 'X',
-                  setter: 'NumberSetter'
-                },
-                {
-                  name: '1',
-                  title: 'Y',
-                  setter: 'NumberSetter'
-                },
-                {
-                  name: '2',
-                  title: 'Z',
-                  setter: 'NumberSetter'
-                }
-              ]
+        name: '!material',
+        title: '材质',
+        type: 'group',
+        display: 'accordion',
+        items: [
+          {
+            name: 'mapUrl',
+            title: 'Albedo 贴图',
+            setter: {
+              componentName: TextureSetter,
+              isDynamic: false,
             }
           }
-        }
-      },
-      {
-        name: 'currentAnimation',
-        title: '当前动画',
-        setter: 'NumberSetter'
-      },
-      {
-        name: 'enableAnimationInEditor',
-        title: '播放动画',
-        setter: 'BoolSetter'
+        ]
       }
     ],
     "supports": {

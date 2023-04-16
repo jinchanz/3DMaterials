@@ -1,10 +1,12 @@
-import { createElement, forwardRef } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { createElement, forwardRef, useEffect } from 'react';
+import { useGLTF, useTexture } from '@react-three/drei';
 
-import { AnimationMixer, Box3, Object3D, Vector3 } from 'three';
+import { AnimationMixer, Box3, Mesh, Texture, Object3D, Vector3, MeshStandardMaterial } from 'three';
 import { useFrame } from '@react-three/fiber';
 
 import { SkeletonUtils, GLTF } from 'three-stdlib';
+
+let lastMapUrl;
 
 function GltfModel(props = {}, ref) {
 
@@ -17,11 +19,14 @@ function GltfModel(props = {}, ref) {
     enableAnimationInEditor, 
     castShadow,
     receiveShadow,
+    mapUrl,
     ...otherProps 
-  } = props || {}
+  }: any = props || {}
 
-  const gltf: GLTF = useGLTF(modelUrl);
-  const { scene, animations } = gltf;
+  const mapTexture = mapUrl ? useTexture(mapUrl) as Texture : null; 
+
+  const gltf = useGLTF(modelUrl);
+  const { scene, animations } = gltf as GLTF;
   const baseModel = new Object3D();
 
 
@@ -31,10 +36,14 @@ function GltfModel(props = {}, ref) {
 	scene.position.set( -c.x, size.y / 2 - c.y, -c.z );
 
   const _scene = SkeletonUtils.clone(scene);
-  _scene.traverse((child) => {
+  _scene.traverse((child: Mesh) => {
     if (child.isMesh) {
       child.castShadow = castShadow;
       child.receiveShadow = receiveShadow;
+      const { material } = child;
+      if (mapTexture) {
+        (material as MeshStandardMaterial).map = mapTexture
+      }
     }
   });
   baseModel.add(_scene);

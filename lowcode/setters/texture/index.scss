@@ -1,0 +1,21 @@
+.texture-setter-container {
+  display: flex;
+  gap: 5px;
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+
+  .select-container {
+    width: 100%;
+  }
+  
+  .next-select-single.next-no-search {
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .preview-img {
+    max-height: 30px;
+  }
+}
+
