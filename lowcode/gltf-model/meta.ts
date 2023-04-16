@@ -107,8 +107,8 @@ const snippets: IPublicTypeSnippet[] = [
       "componentName": "GltfModel",
       "props": {
         modelUrl: '/public/models/glTF/LittlestTokyo.glb',
-        defaultScale: 0.02,
-        defaultTransform: [0, 4, 0]
+        defaultScale: 0.05,
+        defaultTransform: [0, 10, 0]
       }
     }
   },

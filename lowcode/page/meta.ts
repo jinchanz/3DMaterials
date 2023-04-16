@@ -121,6 +121,10 @@ const Page: IPublicTypeComponentMetadata = {
     },
     advanced: {
       callbacks: {
+        onNodeRemove: (node, currentNode) => {
+          node.document.selection.clear();
+          currentNode?.setPropValue('removedItem', node?.id)
+        },
         onNodeAdd: (node, currentNode) => {
           const { dropLocation } = node?.document || {};
           const { canvasX, canvasY } = dropLocation.event;
@@ -359,10 +363,10 @@ const DirectionalLight: IPublicTypeComponentMetadata = {
   ]
 };
 
-const PerspectiveCameraMeta: IPublicTypeComponentMetadata = {
+const ThirdPersonCamera: IPublicTypeComponentMetadata = {
   group: '系统',
   category: '相机',
-  componentName: 'PerspectiveCamera',
+  componentName: 'ThirdPersonCamera',
   title: '透视相机',
   docUrl: '',
   screenshot: '/public/screenshots/directional.png',
@@ -370,7 +374,7 @@ const PerspectiveCameraMeta: IPublicTypeComponentMetadata = {
   npm: {
     package: '@alilc/3d-materials',
     version: '0.1.0',
-    exportName: 'PerspectiveCamera',
+    exportName: 'ThirdPersonCamera',
     main: 'src/index.tsx',
     destructuring: true,
     subName: '',
@@ -414,11 +418,11 @@ const PerspectiveCameraMeta: IPublicTypeComponentMetadata = {
   },
   snippets: [
     {
-      title: '透视相机',
+      title: '第三人称视角',
       screenshot: '/public/screenshots/directional.png',
       schema: {
-        title: '透视相机',
-        componentName: 'PerspectiveCamera',
+        title: '第三人称视角',
+        componentName: 'ThirdPersonCamera',
         props: {
           position: [
             0, 0, 10
@@ -433,9 +437,84 @@ const PerspectiveCameraMeta: IPublicTypeComponentMetadata = {
   ]
 };
 
+const FirstPersonCamera: IPublicTypeComponentMetadata = {
+  group: '系统',
+  category: '相机',
+  componentName: 'FirstPersonCamera',
+  title: '透视相机',
+  docUrl: '',
+  screenshot: '/public/screenshots/directional.png',
+  devMode: 'proCode',
+  npm: {
+    package: '@alilc/3d-materials',
+    version: '0.1.0',
+    exportName: 'FirstPersonCamera',
+    main: 'src/index.tsx',
+    destructuring: true,
+    subName: '',
+  },
+  configure: {
+    props: [
+      {
+        name: 'position',
+        title: '坐标',
+        setter: {
+          componentName: 'ObjectSetter',
+          props: {
+            config: {
+              items: [
+                {
+                  name: '0',
+                  title: 'X',
+                  setter: 'NumberSetter'
+                },
+                {
+                  name: '1',
+                  title: 'Y',
+                  setter: 'NumberSetter'
+                },
+                {
+                  name: '2',
+                  title: 'Z',
+                  setter: 'NumberSetter'
+                }
+              ]
+            }
+          }
+        }
+      },
+    ],
+    supports: {
+      style: false,
+      condition: false,
+      loop: false
+    },
+  },
+  snippets: [
+    {
+      title: '第一人称视角',
+      screenshot: '/public/screenshots/directional.png',
+      schema: {
+        title: '第一人称视角',
+        componentName: 'FirstPersonCamera',
+        props: {
+          position: [
+            0, 0, 10
+          ],
+          fov: 25,
+          near: 1,
+          far: 200,
+          aspect: 9/16,
+        }
+      }
+    }
+  ]
+};
+
 export default [
   Page,
   AmbientLight,
   DirectionalLight,
-  PerspectiveCameraMeta
+  ThirdPersonCamera,
+  FirstPersonCamera
 ];

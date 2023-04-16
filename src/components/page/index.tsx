@@ -1,24 +1,19 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { useCursor, OrbitControls, useHelper, Html, PerspectiveCamera as PerspectiveCameraC, PointerLockControls } from '@react-three/drei';
+import { useCursor, OrbitControls, TransformControls, useHelper, Html, PerspectiveCamera as PerspectiveCameraC, PointerLockControls, PointerLockControlsProps } from '@react-three/drei';
 
-import { PerspectiveCamera, Color, EquirectangularReflectionMapping, CameraHelper, Vector3 } from 'three';
+import { PerspectiveCamera, Color, EquirectangularReflectionMapping, CameraHelper, Vector3, Object3D } from 'three';
 
 import { RGBELoader } from 'three-stdlib';
 
 import { create } from 'zustand'
-
-import { TransformControls } from '../../utils/TransformControls';
 
 import './index.scss';
 import { Loading } from '@alifd/next';
 import GltfModel from '../gltf-model';
 
 let lastChildren;
-
-// 记录当前被操控的对象，当切换选择对象时，调用 detach 方法释放操控
-let currentTransformControlTarget;
 
 const modes = ['translate', 'rotate', 'scale'];
 
@@ -30,6 +25,7 @@ const useStore = create((set, get) => ({
 
 const velocity = new Vector3();
 const direction = new Vector3();
+const playerVector = new Vector3();
 let prevTime = performance.now();
 let moveForward = false;
 let moveLeft = false;
@@ -59,7 +55,7 @@ const onKeyDown = function ( event ) {
       moveRight = true;
       break;
     case 'Space':
-      if ( canJump === true ) velocity.y += 200;
+      if ( canJump === true ) velocity.y += 50;
       canJump = false;
       break;
     default:
@@ -92,7 +88,6 @@ const onKeyUp = function ( event ) {
       break;
 
   }
-  console.log('on key up: ', event.code, moveForward, moveBackward)
 
 };
 
@@ -104,7 +99,7 @@ function CustomScene(props) {
   const { gl, scene: sceneInst, setSize, camera } = useThree();
   const [environment, setEnvironment] = useState();
 
-  const { PerspectiveCamera: playerCameraRef } = useStore((state) => ({ PerspectiveCamera: state.PerspectiveCamera }))
+  const { playerCameraRef, playerRef } = useStore((state) => ({ playerCameraRef: state.PerspectiveCamera, playerRef: state.playerRef }))
 
   useFrame(({ gl, camera, scene }) => {
     if (__designMode !== 'design') {
@@ -113,20 +108,18 @@ function CustomScene(props) {
       if (playerCameraRef?.current) {
         const width = window.innerHeight*playerCameraRef?.current.aspect || 100;
         gl.setViewport((window.innerWidth - width)/2, 0, window.innerHeight*playerCameraRef?.current.aspect, window.innerHeight)
-        gl.render(scene, playerCameraRef.current)
+        gl.render(sceneInst, playerCameraRef.current)
       }
       return;
     }
     gl.autoClear = false
     gl.clear()
-    const originalBg = scene.background;
-    
-    scene.background = originalBg
+
     gl.setViewport(0, 0, window.innerWidth, window.innerHeight)
-    gl.render(scene, camera)
+    gl.render(sceneInst, camera)
     if (playerCameraRef?.current) {
       gl.setViewport(0, 0, 90, 160)
-      gl.render(scene, playerCameraRef.current)
+      gl.render(sceneInst, playerCameraRef.current)
     }
     gl.autoClear = true
 
@@ -143,7 +136,7 @@ function CustomScene(props) {
     }
   }, [texture])
 
-  useEffect(() => {
+  if (!window.onresize) {
     window.onresize = function () {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -151,29 +144,25 @@ function CustomScene(props) {
       setSize(window.innerWidth, window.innerHeight)
       gl.render(sceneInst, camera)
     };
-    return () => {
-      window.onresize = null;
-    }
-  }, [camera, gl, sceneInst, setSize])
+  }
 
-  const playerControlRef = useRef();
-  const playerRef = useRef();
+  const playerControlRef = useRef<PointerLockControlsProps>();
 
   useFrame(() => {
-    if (!playerControlRef?.current) {
-      // console.log('playerRef: ', playerRef.current)
+    if (!playerControlRef?.current || !playerRef?.current) {
       return;
     };
     const playerControl = playerControlRef.current;
+    const playerModel: Object3D = playerRef.current;
     if (!playerControl.isLocked) {
       return;
     }
     const time = performance.now();
     const delta = ( time - prevTime ) / 1000;
-    velocity.x -= velocity.x * 10 * delta;
-    velocity.z -= velocity.z * 10 * delta;
+    velocity.x -= velocity.x * 60 * delta;
+    velocity.z -= velocity.z * 60 * delta;
 
-    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+    velocity.y -= 9.8 * 10.0 * delta; // 100.0 = mass
     
     direction.z = Number( !!moveForward ) - Number( !!moveBackward );
     direction.x = Number( !!moveRight ) - Number( !!moveLeft );
@@ -187,10 +176,19 @@ function CustomScene(props) {
 
     playerControl.getObject().position.y += ( velocity.y * delta ); // new behavior
 
-    if ( playerControl.getObject().position.y < 2 ) {
+    playerVector.setFromMatrixColumn(playerCameraRef.current.matrix, 0);
+    playerModel.position.addScaledVector(playerVector, - velocity.x * delta);
+
+    playerVector.setFromMatrixColumn(playerCameraRef.current.matrix, 0);
+    playerVector.crossVectors(playerCameraRef.current.up, playerVector);
+    playerModel.position.addScaledVector(playerVector, - velocity.z * delta);
+    playerModel.position.y += ( velocity.y * delta );
+
+    if ( playerControl.getObject().position.y < 2 || playerModel.position.y < 0) {
 
       velocity.y = 0;
       playerControl.getObject().position.y = 2;
+      playerModel.position.y = 0;
 
       canJump = true;
 
@@ -224,7 +222,7 @@ const Content = (props) => {
     props || {};
   lastChildren = children;
   const pageNode = __designMode === 'design' ? getNode(componentId) : null;
-  let [target, setTarget] = useState();
+  const [target, setTarget] = useState();
   const [hovered, setHovered] = useState(false);
   const [transformMode, setTransformMode] = useState(0);
   useCursor(hovered);
@@ -263,6 +261,8 @@ const Content = (props) => {
   
   const [camera, setCamera] = useState(defaultCamera);
 
+  const transformControlsRef = useRef<typeof TransformControls>();
+
   React.useEffect(() => {
     camera.position.fromArray(cameraProps?.position || [0, 8, 30]);
     camera.lookAt(0, 0, 0);
@@ -289,13 +289,18 @@ const Content = (props) => {
   }, [getNode, pageNode, target])
 
   useEffect(() => {
-    if (currentTransformControlTarget) {
-      currentTransformControlTarget.detach();
-      currentTransformControlTarget = null;
+    if (transformControlsRef?.current) {
+      transformControlsRef?.current.detach();
     }
   }, [target]);
 
-  const { PerspectiveCamera: playerCameraRef } = useStore((state) => ({ PerspectiveCamera: state.PerspectiveCamera }))
+  useEffect(() => {
+    setTarget(null);
+  }, [props?.removedItem])
+
+  if (!target?.parent && transformControlsRef?.current) {
+    transformControlsRef?.current.detach();
+  }
 
   return <Canvas
     ref={canvasRef}
@@ -313,11 +318,13 @@ const Content = (props) => {
       {_children}
 
       { __designMode === 'design' ? <OrbitControls
+        enablePan={false}
         makeDefault
         onEnd={onEnd}
       /> : null}
-      {__designMode === 'design' && target ? (
+      {__designMode === 'design' && target && target.parent ? (
         <TransformControls
+          ref={transformControlsRef}
           object={target}
           mode={modes[transformMode]}
           onMouseUp={(e) => {
@@ -325,7 +332,6 @@ const Content = (props) => {
             node.setPropValue('rotation', e.target.object.rotation.toArray());
             node.setPropValue('position', e.target.object.position.toArray());
             node.setPropValue('scale', e.target.object.scale.toArray());
-            currentTransformControlTarget = e.target;
           } } />
       ) : null}
     </CustomScene>
@@ -392,50 +398,107 @@ const DirectionalLight = (props) => {
 
 DirectionalLight.isLight = true;
 
-const PerspectiveCameraComp = (props) => {
+const ThirdPersonCamera = (props) => {
 
   const { label, aspect, position, scale, rotation, onClick, onContextMenu, onPointerOut, onPointerOver, componentId, __designMode, ...otherProps } = props;
 
-  const ref = React.useRef()
+  const ref = React.useRef<PerspectiveCamera>()
+  const playerRef = React.useRef()
   useEffect(() => {
     if (ref?.current) {
       useStore.setState({
-        PerspectiveCamera: ref
+        PerspectiveCamera: ref,
+        playerRef
       })
     }
     ref.current.aspect = __designMode !== 'design' ? window.innerWidth/window.innerHeight : aspect || 1;
     ref.current.updateProjectionMatrix();
   }, [label, otherProps.aspect])
   useHelper(ref, __designMode !== 'design' ? null : CameraHelper)
-
-  return <mesh
+  return <group
     scale={scale}
-    position={position}
     rotation={rotation}
+    position={position}
+    componentId={componentId}
     onClick={onClick}
     onContextMenu={onContextMenu}
     onPointerOut={onPointerOut}
     onPointerOver={onPointerOver}
-    componentId={componentId}
   >
-    { 
-      __designMode === 'design' ?
-      <>
-        <Html className="label">{'相机'}</Html> 
-        <sphereGeometry />
-        <meshStandardMaterial emissive={new Color('red')}/>
-      </> : null
-    }
+    <PerspectiveCameraC 
+      {...otherProps} 
+      position={new Vector3(0,  2, 5)}
+      aspect={__designMode !== 'design' ? window.innerWidth/window.innerHeight : aspect || 1} 
+      manual frustumCulled 
+      ref={ref} >
+      { 
+        __designMode === 'design' ?
+        <>
+          <Html className="label">{'相机'}</Html> 
+          <sphereGeometry />
+          <meshStandardMaterial emissive={new Color('red')}/>
+        </> : null
+      }
+    </PerspectiveCameraC>
     <Suspense fallback={null}>
       <GltfModel
+        ref={playerRef}
+        __designMode={__designMode}
         currentAnimation={3} 
         modelUrl='/public/models/glTF/Soldier.glb' 
       />
     </Suspense>
-    <PerspectiveCameraC {...otherProps} aspect={__designMode !== 'design' ? window.innerWidth/window.innerHeight : aspect || 1} manual frustumCulled ref={ref} />
-  </mesh>
+  </group>
 }
 
-PerspectiveCameraComp.isPerspectiveCamera = true;
+ThirdPersonCamera.isPerspectiveCamera = true;
 
-export { Page, AmbientLight, DirectionalLight, PerspectiveCameraComp };
+const FirstPersonCamera = (props) => {
+
+  const { label, aspect, position, scale, rotation, onClick, onContextMenu, onPointerOut, onPointerOver, componentId, __designMode, ...otherProps } = props;
+
+  const ref = React.useRef<PerspectiveCamera>()
+  const playerRef = React.useRef()
+  useEffect(() => {
+    if (ref?.current) {
+      useStore.setState({
+        PerspectiveCamera: ref,
+        playerRef
+      })
+    }
+    ref.current.aspect = __designMode !== 'design' ? window.innerWidth/window.innerHeight : aspect || 1;
+    ref.current.updateProjectionMatrix();
+  }, [label, otherProps.aspect])
+  useHelper(ref, __designMode !== 'design' ? null : CameraHelper)
+  return <group
+    ref={playerRef}
+    position={position}
+    rotation={rotation}
+    componentId={componentId}
+    onClick={onClick}
+    onContextMenu={onContextMenu}
+    onPointerOut={onPointerOut}
+    onPointerOver={onPointerOver}
+  >
+    <PerspectiveCameraC 
+      {...otherProps}
+      position={new Vector3(0, 1.2, 0)}
+      aspect={__designMode !== 'design' ? window.innerWidth/window.innerHeight : aspect || 1} 
+      manual frustumCulled 
+      ref={ref} >
+        <Suspense fallback={null}>
+          <GltfModel
+            __designMode={__designMode}
+            position={new Vector3(0, -1.2, -0.7)}
+            currentAnimation={3} 
+            enableAnimationInEditor={false}
+            modelUrl='/public/models/glTF/Soldier.glb' 
+          />
+        </Suspense>
+    </PerspectiveCameraC>
+  </group>
+}
+
+FirstPersonCamera.isPerspectiveCamera = true;
+
+export { Page, AmbientLight, DirectionalLight, ThirdPersonCamera, FirstPersonCamera };
