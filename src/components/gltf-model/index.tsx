@@ -48,7 +48,7 @@ function GltfModel(props = {}, ref) {
     });
     baseModel.add(_scene);
     return baseModel;
-  }, [componentId, mapTexture]);
+  }, [castShadow, mapTexture, receiveShadow, componentId]);
 
 
   let mixer;

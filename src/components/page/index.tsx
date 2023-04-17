@@ -302,6 +302,7 @@ const Content = (props) => {
   }, [props?.removedItem])
 
   const clearSelection = () => {
+    if (__designMode !== 'design') return;
     useStore.setState({selectedTarget: null})
     if (transformControlsRef?.current) {
       transformControlsRef?.current.detach();
