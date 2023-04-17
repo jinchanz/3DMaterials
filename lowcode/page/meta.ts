@@ -69,47 +69,6 @@ const Page: IPublicTypeComponentMetadata = {
           }
         ]
       },
-      {
-        name: 'camera',
-        title: '编辑器相机',
-        setter: {
-          componentName: 'ObjectSetter',
-          props: {
-            config: {
-              items: [
-                {
-                  name: 'position',
-                  title: '坐标',
-                  setter: {
-                    componentName: 'ObjectSetter',
-                    props: {
-                      config: {
-                        items: [
-                          {
-                            name: '0',
-                            title: 'X',
-                            setter: 'NumberSetter'
-                          },
-                          {
-                            name: '1',
-                            title: 'Y',
-                            setter: 'NumberSetter'
-                          },
-                          {
-                            name: '2',
-                            title: 'Z',
-                            setter: 'NumberSetter'
-                          }
-                        ]
-                      }
-                    }
-                  }
-                },
-              ]
-            },
-          },
-        }
-      }
     ],
     supports: {
       style: false,

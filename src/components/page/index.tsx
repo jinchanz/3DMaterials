@@ -1,15 +1,13 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { useCursor, OrbitControls, useHelper, Html, PerspectiveCamera as PerspectiveCameraC, PointerLockControls, PointerLockControlsProps } from '@react-three/drei';
+import { useCursor, TransformControls, OrbitControls, useHelper, Html, PerspectiveCamera as PerspectiveCameraC, PointerLockControls, PointerLockControlsProps } from '@react-three/drei';
 
 import { PerspectiveCamera, Color, EquirectangularReflectionMapping, CameraHelper, Vector3, Object3D } from 'three';
 
 import { RGBELoader } from 'three-stdlib';
 
 import { create } from 'zustand'
-
-import { TransformControls } from '../../utils/TransformControls'
 
 import './index.scss';
 import { Loading } from '@alifd/next';
@@ -256,7 +254,6 @@ const Content = (props) => {
               const node = getNode(_target?.componentId);
               node.select();
             })
-            console.log('on click: ', Object.assign({}, _target), Object.assign({}, currentSelectedTarget || {msg: 'undefine'}))
             currentSelectedTarget = _target;
             useStore.setState({
               selectedTarget: _target
@@ -276,15 +273,20 @@ const Content = (props) => {
     }
   });
   
-  const defaultCamera = React.useMemo(() => new PerspectiveCamera(cameraProps.fov || 25, window.innerWidth / window.innerHeight, 0.1, 2000), [cameraProps] )
+  const onEnd = () => {
+    if (!pageNode) return;
+    pageNode.setPropValue('camera.position', orbitControlsRef.current.object.position.toArray());
+  }
+
+  const onOrbitEnd = useMemo(() => onEnd, []);
+  const defaultCamera = useMemo(() => new PerspectiveCamera(cameraProps.fov || 25, window.innerWidth / window.innerHeight, 0.1, 2000), [cameraProps] )
   
   const [camera, setCamera] = useState(defaultCamera);
 
   const transformControlsRef = useRef<typeof TransformControls>();
   const orbitControlsRef = useRef<typeof OrbitControls>();
 
-  React.useEffect(() => {
-    console.log('in camera change ')
+  useEffect(() => {
     camera.position.fromArray(cameraProps?.position || [0, 8, 30]);
     camera.lookAt(0, 0, 0);
     camera.updateMatrixWorld(true);
@@ -313,7 +315,9 @@ const Content = (props) => {
     }
   }, [target]);
 
-  console.log('rendering: ', Object.assign({}, target))
+  if (target && !target.parent) {
+    clearSelection()
+  }
 
   return <Canvas
     ref={canvasRef}
@@ -331,21 +335,20 @@ const Content = (props) => {
       {_children}
 
       { __designMode === 'design' ? 
-        <OrbitControls makeDefault ref={orbitControlsRef} /> : null
+        <OrbitControls makeDefault ref={orbitControlsRef} onEnd={onOrbitEnd} /> : null
       }
       {__designMode === 'design' && target && target.parent ? (
         <TransformControls
           ref={transformControlsRef}
           object={target}
           mode={modes[transformMode]}
-          onMouseUp={(e) => {
+          onMouseUp={() => {
             const node = getNode(target?.componentId);
             setTimeout(() => {
               node.setPropValue('rotation', target.rotation.toArray());
               node.setPropValue('position', target.position.toArray());
               node.setPropValue('scale', target.scale.toArray());
-              console.log('cameraPosition: ', cameraProps.position, orbitControlsRef.current.object.position)
-              clearSelection()
+              clearSelection();
             })
           } } 
         />

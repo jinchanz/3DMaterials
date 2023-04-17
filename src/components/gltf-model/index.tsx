@@ -1,12 +1,10 @@
-import { createElement, forwardRef, useEffect } from 'react';
+import { createElement, forwardRef, useEffect, useMemo } from 'react';
 import { useGLTF, useTexture } from '@react-three/drei';
 
 import { AnimationMixer, Box3, Mesh, Texture, Object3D, Vector3, MeshStandardMaterial } from 'three';
 import { useFrame } from '@react-three/fiber';
 
 import { SkeletonUtils, GLTF } from 'three-stdlib';
-
-let lastMapUrl;
 
 function GltfModel(props = {}, ref) {
 
@@ -20,6 +18,7 @@ function GltfModel(props = {}, ref) {
     castShadow,
     receiveShadow,
     mapUrl,
+    componentId,
     ...otherProps 
   }: any = props || {}
 
@@ -27,30 +26,34 @@ function GltfModel(props = {}, ref) {
 
   const gltf = useGLTF(modelUrl);
   const { scene, animations } = gltf as GLTF;
-  const baseModel = new Object3D();
 
-
-  const box = new Box3( ).setFromObject( scene );
-	const c = box.getCenter( new Vector3( ) );
-	const size = box.getSize( new Vector3( ) );
-	scene.position.set( -c.x, size.y / 2 - c.y, -c.z );
-
-  const _scene = SkeletonUtils.clone(scene);
-  _scene.traverse((child: Mesh) => {
-    if (child.isMesh) {
-      child.castShadow = castShadow;
-      child.receiveShadow = receiveShadow;
-      const { material } = child;
-      if (mapTexture) {
-        (material as MeshStandardMaterial).map = mapTexture
+  const model = useMemo(() => {
+    const baseModel = new Object3D();
+    const box = new Box3( ).setFromObject( scene );
+    const c = box.getCenter( new Vector3( ) );
+    const size = box.getSize( new Vector3( ) );
+    scene.position.set( -c.x, size.y / 2 - c.y, -c.z );
+    const _scene = SkeletonUtils.clone(scene);
+  
+    _scene.traverse((child: Mesh) => {
+      if (child.isMesh) {
+        child.castShadow = castShadow;
+        child.receiveShadow = receiveShadow;
+        const { material } = child;
+        child.material = material.clone();
+        if (mapTexture) {
+          (child.material as MeshStandardMaterial).map = mapTexture
+        }
       }
-    }
-  });
-  baseModel.add(_scene);
+    });
+    baseModel.add(_scene);
+    return baseModel;
+  }, [componentId, mapTexture]);
+
 
   let mixer;
   if (animations?.length && (__designMode !== 'design' || enableAnimationInEditor)) {
-    mixer = new AnimationMixer( baseModel );
+    mixer = new AnimationMixer( model );
     mixer.clipAction( animations[ currentAnimation || 0 ] ).play();
   }
 
@@ -61,12 +64,12 @@ function GltfModel(props = {}, ref) {
   })
 
   if (defaultScale) {
-    baseModel.scale.setScalar(defaultScale)
+    model.scale.setScalar(defaultScale)
   }
 
   return (
-    <mesh {...otherProps} ref={ref}>
-      <primitive object={baseModel} />
+    <mesh componentId={componentId} {...otherProps} ref={ref}>
+      <primitive object={model} />
     </mesh>
   );
 }
