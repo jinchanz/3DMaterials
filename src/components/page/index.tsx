@@ -1,13 +1,15 @@
 /* eslint-disable react/no-unknown-property */
 import React, { Suspense, useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { useCursor, OrbitControls, TransformControls, useHelper, Html, PerspectiveCamera as PerspectiveCameraC, PointerLockControls, PointerLockControlsProps } from '@react-three/drei';
+import { useCursor, OrbitControls, useHelper, Html, PerspectiveCamera as PerspectiveCameraC, PointerLockControls, PointerLockControlsProps } from '@react-three/drei';
 
 import { PerspectiveCamera, Color, EquirectangularReflectionMapping, CameraHelper, Vector3, Object3D } from 'three';
 
 import { RGBELoader } from 'three-stdlib';
 
 import { create } from 'zustand'
+
+import { TransformControls } from '../../utils/TransformControls'
 
 import './index.scss';
 import { Loading } from '@alifd/next';
@@ -18,10 +20,12 @@ let lastChildren;
 const modes = ['translate', 'rotate', 'scale'];
 
 const useStore = create((set, get) => ({
-  PerspectiveCamera: null
+  playerCameraRef: null,
+  selectedTarget: null,
 }))
 
-
+let currentSelectedTarget;
+const modelMap = {};
 
 const velocity = new Vector3();
 const direction = new Vector3();
@@ -99,7 +103,7 @@ function CustomScene(props) {
   const { gl, scene: sceneInst, setSize, camera } = useThree();
   const [environment, setEnvironment] = useState();
 
-  const { playerCameraRef, playerRef } = useStore((state) => ({ playerCameraRef: state.PerspectiveCamera, playerRef: state.playerRef }))
+  const { playerCameraRef, playerRef } = useStore((state) => ({ playerCameraRef: state.playerCameraRef, playerRef: state.playerRef }))
 
   useFrame(({ gl, camera, scene }) => {
     if (__designMode !== 'design') {
@@ -222,9 +226,14 @@ const Content = (props) => {
     props || {};
   lastChildren = children;
   const pageNode = __designMode === 'design' ? getNode(componentId) : null;
-  const [target, setTarget] = useState();
+
   const [hovered, setHovered] = useState(false);
   const [transformMode, setTransformMode] = useState(0);
+  const { selectedTarget: target } = useStore((state) => ({ selectedTarget: state.selectedTarget }))
+  if (pageNode && !target) {
+    pageNode.select();
+  }
+
   useCursor(hovered);
   const _children = [];
   
@@ -236,13 +245,23 @@ const Content = (props) => {
       if (__designMode === 'design') {
         Object.assign(overrideProps, {
           onClick: (event) => {
+            event.nativeEvent.preventDefault()
             let _target = event.object;
             while (_target.parent && !_target.componentId) {
               _target = _target.parent;
             }
-            const node = getNode(_target?.componentId);
-            node.select();
-            setTarget(_target);
+            if (!_target.parent || !_target.componentId) return;
+            if (currentSelectedTarget && (currentSelectedTarget?.componentId === _target.componentId)) return;
+            setTimeout(() => {
+              const node = getNode(_target?.componentId);
+              node.select();
+            })
+            console.log('on click: ', Object.assign({}, _target), Object.assign({}, currentSelectedTarget || {msg: 'undefine'}))
+            currentSelectedTarget = _target;
+            useStore.setState({
+              selectedTarget: _target
+            })
+            
           },
           onPointerOver: () => setHovered(true),
           onPointerOut: () => setHovered(false),
@@ -262,8 +281,10 @@ const Content = (props) => {
   const [camera, setCamera] = useState(defaultCamera);
 
   const transformControlsRef = useRef<typeof TransformControls>();
+  const orbitControlsRef = useRef<typeof OrbitControls>();
 
   React.useEffect(() => {
+    console.log('in camera change ')
     camera.position.fromArray(cameraProps?.position || [0, 8, 30]);
     camera.lookAt(0, 0, 0);
     camera.updateMatrixWorld(true);
@@ -272,21 +293,19 @@ const Content = (props) => {
     return () => {
       setCamera(null)
     }
+  }, [])
 
-  }, [cameraProps, camera])
+  useEffect(() => {
+    if (props?.removedItem === target?.componentId) clearSelection();
+  }, [props?.removedItem])
 
-  const onEnd = useMemo(() => {
-    return (e) => {
-      if (!pageNode) return;
-      pageNode.setPropValue('camera.position', e?.target?.object.position?.toArray?.());
-      pageNode.document.selection.clear();
-      if (target) {
-        getNode(target.componentId).select();
-      } else {
-        pageNode.select();
-      }
-    };
-  }, [getNode, pageNode, target])
+  const clearSelection = () => {
+    useStore.setState({selectedTarget: null})
+    if (transformControlsRef?.current) {
+      transformControlsRef?.current.detach();
+    }
+    currentSelectedTarget = null;
+  }
 
   useEffect(() => {
     if (transformControlsRef?.current) {
@@ -294,20 +313,14 @@ const Content = (props) => {
     }
   }, [target]);
 
-  useEffect(() => {
-    setTarget(null);
-  }, [props?.removedItem])
-
-  if (!target?.parent && transformControlsRef?.current) {
-    transformControlsRef?.current.detach();
-  }
+  console.log('rendering: ', Object.assign({}, target))
 
   return <Canvas
     ref={canvasRef}
     className="threeDPage"
     camera={camera}
     shadows
-    onPointerMissed={() => setTarget(null)}
+    onPointerMissed={clearSelection}
   >
     <CustomScene __designMode={__designMode} background={background} backgroundType={backgroundType} texture={texture}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0, 'XYZ']}>
@@ -317,22 +330,25 @@ const Content = (props) => {
       <gridHelper args={[100, 100, 0x888888, 0x888888]} />
       {_children}
 
-      { __designMode === 'design' ? <OrbitControls
-        enablePan={false}
-        makeDefault
-        onEnd={onEnd}
-      /> : null}
+      { __designMode === 'design' ? 
+        <OrbitControls makeDefault ref={orbitControlsRef} /> : null
+      }
       {__designMode === 'design' && target && target.parent ? (
         <TransformControls
           ref={transformControlsRef}
           object={target}
           mode={modes[transformMode]}
           onMouseUp={(e) => {
-            const node = getNode(e.target.object?.componentId);
-            node.setPropValue('rotation', e.target.object.rotation.toArray());
-            node.setPropValue('position', e.target.object.position.toArray());
-            node.setPropValue('scale', e.target.object.scale.toArray());
-          } } />
+            const node = getNode(target?.componentId);
+            setTimeout(() => {
+              node.setPropValue('rotation', target.rotation.toArray());
+              node.setPropValue('position', target.position.toArray());
+              node.setPropValue('scale', target.scale.toArray());
+              console.log('cameraPosition: ', cameraProps.position, orbitControlsRef.current.object.position)
+              clearSelection()
+            })
+          } } 
+        />
       ) : null}
     </CustomScene>
   </Canvas>;
@@ -407,7 +423,7 @@ const ThirdPersonCamera = (props) => {
   useEffect(() => {
     if (ref?.current) {
       useStore.setState({
-        PerspectiveCamera: ref,
+        playerCameraRef: ref,
         playerRef
       })
     }
@@ -462,7 +478,7 @@ const FirstPersonCamera = (props) => {
   useEffect(() => {
     if (ref?.current) {
       useStore.setState({
-        PerspectiveCamera: ref,
+        playerCameraRef: ref,
         playerRef
       })
     }

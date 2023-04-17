@@ -64,6 +64,9 @@ const TransformControls = /*#__PURE__*/React.forwardRef(({
       if (onObjectChange) controls == null ? void 0 : controls.removeEventListener == null ? void 0 : controls.removeEventListener('objectChange', onObjectChange);
     };
   }, [onChange, onMouseDown, onMouseUp, onObjectChange, controls, invalidate]);
+
+  console.log('transfromcontrols rendering: ', defaultControls)
+
   return controls ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("primitive", _extends({
     ref: ref,
     dispose: undefined,
