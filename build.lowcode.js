@@ -17,17 +17,10 @@ module.exports = {
         presetConfig: {
           pluginConfig: {
             logo: {
-              logo: 'https://mdn.alipayobjects.com/huamei_0prmtq/afts/img/A*pDJSTbz7wgAAAAAAAAAAAAAADvuFAQ/original'
+              logo: 'https://cdn.npmmirror.com/npmmirror-logo.png'
             }
           },
-          simulatorUrl: [
-            'https://alifd.alicdn.com/npm/@alilc/lowcode-react-simulator-renderer@1.0.18/dist/js/react-simulator-renderer.js',
-            'https://alifd.alicdn.com/npm/@alilc/lowcode-react-simulator-renderer@1.0.18/dist/css/react-simulator-renderer.css',
-          ]
         },
-        customPlugins: [
-          
-        ]
       },
     ],
   ],
